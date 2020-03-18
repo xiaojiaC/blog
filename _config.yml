@@ -13,8 +13,8 @@ timezone: 'Asia/Shanghai'
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: http://xiaojiaC.github.io
-root: /
+url: http://xiaojiaC.github.io/blog
+root: /blog/
 permalink: :title.html
 permalink_defaults:
 pretty_urls:
@@ -109,7 +109,7 @@ theme: next
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: https://github.com/xiaojiaC/xiaojiaC.github.io
+  repo: https://github.com/xiaojiaC/blog
   branch: gh-pages
 
 feed:
