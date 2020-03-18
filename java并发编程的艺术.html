@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=SimHei, Verdana, sans-serif:300,300italic,400,400italic,700,700italic|KaiTi, "Microsoft YaHei", Georgia, sans:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="并发编程的挑战上下文切换上下文切换：CPU通过时间片分配算法来循环执行任务，当前任务执行一个时间片后会切换到下一个任务。但是，在切换前会保存上一个任务的状态，以便下次切换回这个任务时，可以再加载这个任务的状态。所以任务从保存到再加载的过程就是一次上下文切换。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java并发编程的艺术">
+<meta property="og:url" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF.html">
+<meta property="og:site_name" content="Oh_null&#39;s blog">
+<meta property="og:description" content="并发编程的挑战上下文切换上下文切换：CPU通过时间片分配算法来循环执行任务，当前任务执行一个时间片后会切换到下一个任务。但是，在切换前会保存上一个任务的状态，以便下次切换回这个任务时，可以再加载这个任务的状态。所以任务从保存到再加载的过程就是一次上下文切换。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-32bit-vm.PNG">
+<meta property="og:image" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-64bit-vm.PNG">
+<meta property="og:image" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/synchonized.png">
+<meta property="og:image" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/code-to-instruction-reorder.PNG">
+<meta property="article:published_time" content="2020-03-16T11:55:32.000Z">
+<meta property="article:modified_time" content="2020-03-18T12:11:13.729Z">
+<meta property="article:author" content="xiaojiaC">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="concurrency">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-32bit-vm.PNG">
+
+<link rel="canonical" href="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>java并发编程的艺术 | Oh_null's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Oh_null's blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Oh_null's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xiaojiaC">
+      <meta itemprop="description" content="世上本无路，走的人多了，便成了路。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Oh_null's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java并发编程的艺术
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-03-16 19:55:32" itemprop="dateCreated datePublished" datetime="2020-03-16T19:55:32+08:00">2020-03-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/" itemprop="url" rel="index"><span itemprop="name">JAVA</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">读书笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="并发编程的挑战"><a href="#并发编程的挑战" class="headerlink" title="并发编程的挑战"></a>并发编程的挑战</h2><h3 id="上下文切换"><a href="#上下文切换" class="headerlink" title="上下文切换"></a>上下文切换</h3><p>上下文切换：CPU通过时间片分配算法来循环执行任务，当前任务执行一个时间片后会切换到下一个任务。但是，在切换前会保存上一个任务的状态，以便下次切换回这个任务时，可以再加载这个任务的状态。所以任务从保存到再加载的过程就是一次上下文切换。</p>
+<a id="more"></a>
+
+<div class="tabs" id="上下文切换"><ul class="nav-tabs"><li class="tab active"><a href="#上下文切换-1">减少方法</a></li><li class="tab"><a href="#上下文切换-2">实践案例</a></li><li class="tab"><a href="#上下文切换-3">分析工具</a></li></ul><div class="tab-content"><div class="tab-pane active" id="上下文切换-1"><ul>
+<li>无锁并发编程</li>
+<li>CAS算法</li>
+<li>使用最少线程</li>
+<li>使用协程</li>
+</ul></div><div class="tab-pane" id="上下文切换-2"><ul>
+<li>减少<span class="label warning">WAITTING</span>线程数，因为每一次从<span class="label warning">WAITTING</span>到<span class="label danger">RUNNABLE</span>都会进行一次上下文的切换。</li>
+</ul></div><div class="tab-pane" id="上下文切换-3"><p><code>vmstat</code></p></div></div></div>
+
+<h3 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h3><p>死锁：多个进程在执行过程中，因争夺同类资源且资源分配不当而造成的一种互相等待的现象，若无外力作用，它们都将永远无法继续执行，这种状态称为死锁。</p>
+<div class="tabs" id="死锁"><ul class="nav-tabs"><li class="tab active"><a href="#死锁-1">产生原因</a></li><li class="tab"><a href="#死锁-2">必要条件</a></li><li class="tab"><a href="#死锁-3">规避方法</a></li><li class="tab"><a href="#死锁-4">分析工具</a></li></ul><div class="tab-content"><div class="tab-pane active" id="死锁-1"><ul>
+<li>不可剥夺资源的竞争<blockquote>
+<p>可剥夺资源：某进程在获得该类资源时，该资源同样可以被其他进程或系统剥夺。<br>不可剥夺资源：系统把该类资源分配给某个进程时不能强制收回，只能在该进程使用完成后自动释放。</p>
+</blockquote>
+</li>
+<li>进程推进顺序不当</li>
+</ul></div><div class="tab-pane" id="死锁-2"><ul>
+<li>互斥条件：一个资源每次只能被一个进程使用。</li>
+<li>不剥夺条件：进程已获得的资源，在末使用完之前，不能强行剥夺。</li>
+<li>请求与保持条件：一个进程因请求资源而阻塞时，对已获得的资源保持不放。</li>
+<li>循环等待条件：若干进程之间形成一种头尾相接的循环等待资源关系。</li>
+</ul></div><div class="tab-pane" id="死锁-3"><ul>
+<li>避免一个线程同时获取多个锁</li>
+<li>避免一个线程在锁内同时占用多个资源，尽量保证每个锁只占用一个资源</li>
+<li>尝试使用定时锁来替代使用内部锁机制</li>
+<li>对于数据库锁，加锁和解锁必须在一个数据库连接里，否则会出现解锁失败的情况</li>
+<li>避免对长时间的计算任务和阻塞的I/O操作加锁</li>
+</ul></div><div class="tab-pane" id="死锁-4"><p><code>jps</code>, <code>jstack $pid</code></p></div></div></div>
+
+<h3 id="资源限制"><a href="#资源限制" class="headerlink" title="资源限制"></a>资源限制</h3><p>硬件资源限制：可以考虑使用集群并行执行程序。<br>软件资源限制：可以考虑使用资源池将资源复用。</p>
+<h2 id="java并发机制的底层实现原理"><a href="#java并发机制的底层实现原理" class="headerlink" title="java并发机制的底层实现原理"></a>java并发机制的底层实现原理</h2><h3 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h3><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>释义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内存屏障</td>
+<td>一组处理器指令，由于实现对内存操作的顺序限制。</td>
+</tr>
+<tr>
+<td>原子操作</td>
+<td>不可中断的一个或一系列操作。</td>
+</tr>
+<tr>
+<td>缓存行</td>
+<td>缓存中可以分配的最小存储单位。处理器填写缓存线时会加载整个缓存线，需要使用多个主内存读周期。</td>
+</tr>
+<tr>
+<td>缓存行填充</td>
+<td>当处理器识别到从主存中读取的操作数是可缓存的，处理器读取整个缓存行到适当的缓存中（L1,L2,L3或所有）。</td>
+</tr>
+<tr>
+<td>缓存命中</td>
+<td>如果进行高速缓存行填充操作的内存位置仍然是下次处理器访问的内存地址，处理器从缓存中读取操作数，而不是从主存中读取。</td>
+</tr>
+<tr>
+<td>写命中</td>
+<td>当处理器将操作数写回到一个内存缓存的区域时，它首先会检查这个缓存的内存地址是否在缓存行中，如果存在一个有效的缓存行，则处理器将这个操作数写回到缓存，而不是写回到内存，这个操作被称为写命中。</td>
+</tr>
+<tr>
+<td>写缺失</td>
+<td>一个有效的缓存行被写入到不存在的内存区域。</td>
+</tr>
+<tr>
+<td>CPU流水线</td>
+<td>工作方式就像工业生产中的装配流水线，在CPU中由5<del>6个不同功能的电路单元组成一条指令处理流水线，然后将一条x86指令拆分为5</del>6步再由这些电路单元分别执行，这样就能实现一个CPU时钟周期内完成一条指令，因此提高CPU的运算速度。</td>
+</tr>
+<tr>
+<td>内存顺序冲突</td>
+<td>一般由假共享引起，假共享是指多个CPU同时修改同一个缓存行的不同部分而引起其中一个CPU操作无效，当出现这个内存顺序冲突时，CPU必须清空流水线。</td>
+</tr>
+</tbody></table>
+<h3 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h3><p><code>volatile</code>变量修饰的共享变量进行写操作的时候会多出一个<em>lock前缀的指令</em>，该指令在多核处理器下会引发：</p>
+<ol>
+<li>将当前处理器缓存行的数据回写到系统内存。</li>
+<li>这个回写内存的操作会使在其他CPU里缓存了该内存地址的数据无效。</li>
+</ol>
+<p>实现原理：</p>
+<blockquote>
+<p>声明了volatile的变量进行写操作，JVM就会向处理器发送一条Lock前缀的指令，将这个变量所在缓存行的数据写回到系统内存。但是，就算写回到内存，如果其他处理器缓存的值还是旧的，再执行计算操作就会有问题。所以，在多处理器下，为了保证各个处理器的缓存是一致的，就会实现缓存一致性协议，每个处理器通过嗅探在总线上传播的数据来检查自己缓存的值是不是过期了，当处理器发现自己缓存行对应的内存地址被修改，就会将当前处理器的缓存行设置成无效状态，当处理器对这个数据进行修改操作的时候，会重新从系统内存中把数据读到处理器缓存里。</p>
+</blockquote>
+<p>为什么<code>LinkedTransferQueue</code>中头、尾volatile变量追加64字节能够提高并发编程的效率呢？</p>
+<p>大部分处理器高速缓存行是64个字节宽，且不支持部分填充缓存行。使用追加到64字节的方式来填满高速缓冲区的缓存行，避免头节点和尾节点加载到同一个缓存行，使头、尾节点在修改时不会互相锁定。</p>
+<p>是不是在使用<code>volatile</code>变量时都应该追加到64字节呢？<strong>并非如此</strong>，在两种场景下不应该使用这种方式：</p>
+<ul>
+<li>缓存行非64字节宽的处理器</li>
+<li>共享变量不会被频繁地写</li>
+</ul>
+<div class="note warning">
+            <p>不过这种追加字节的方式在Java 7下可能不生效，因为Java 7变得更加智慧，它会淘汰或重新排列无用字段，需要使用其他追加字节的方式。</p>
+          </div>
+
+<div class="note info">
+            <p>你可能想看这里: <a href="https://blog.csdn.net/aigoogle/article/details/41517213" target="_blank" rel="noopener">神奇的缓存行填充</a></p>
+          </div>
+
+<h3 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h3><p>实现原理：</p>
+<blockquote>
+<p>JVM基于进入和退出Monitor对象来实现方法同步和代码块同步，但两者的实现细节不一样。代码块同步是使用<code>monitorenter</code>和<code>monitorexit</code>指令实现的，而方法同步是使用另外一种方式实现的，细节在JVM规范里并没有详细说明。但是，方法的同步同样可以使用这两个指令来实现。<code>monitorenter</code>指令是在编译后插入到同步代码块的开始位置，而<code>monitorexit</code>是插入到方法结束处和异常处，JVM要保证每个<code>monitorenter</code>必须有对应的<code>monitorexit</code>与之配对。任何对象都有一个monitor与之关联，当且一个monitor被持有后，它将处于锁定状态。线程执行到<code>monitorenter</code>指令时，将会尝试获取对象所对应的monitor的所有权，即尝试获得对象的锁。</p>
+</blockquote>
+<p><code>synchronized</code>用的锁是存在Java对象头里的。其存储结构如下示：</p>
+<p>第一部分：</p>
+<img src="/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-32bit-vm.PNG" class="">
+<img src="/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-64bit-vm.PNG" class="">
+
+<p>第二部分：<br>类型指针，即对象指向类元数据的指针，虚拟机通过这个指针来确定对象是哪个类的实例。但并不是所有虚拟机实现都需要在对象头上保持类型指针。因为有的虚拟机使用<em>句柄</em>进行对象访问定位，而不是<em>直接指针</em>访问。</p>
+<p>第三部分：<br>如果对象是一个java数组，那么在对象头中还必须有一块用于记录数组长度的数据。可能是对齐填充，并不是必要存在的，也没有特别含义，仅起占位符的作用。</p>
+<h4 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h4><p>在Java SE 1.6中，锁一共有4种状态，级别从低到高依次是：<strong>无锁状态</strong>、<strong>偏向锁状态</strong>、<strong>轻量级锁状态</strong>和<strong>重量级锁</strong>状态，这几个状态会随着竞争情况逐渐升级。锁可以升级但不能降级。</p>
+<img src="/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/synchonized.png" class="">
+
+<h3 id="原子操作"><a href="#原子操作" class="headerlink" title="原子操作"></a>原子操作</h3><p>原子操作：不可被中断的一个或一系列操作。</p>
+<p>处理器如何实现原子操作：</p>
+<ul>
+<li>通过总线锁保证原子性（总线上声明<code>lock#</code>信号）</li>
+<li>通过缓存锁定来保证原子性（修改内部的内存地址+缓存一致性机制使<em>单个</em>缓存行无效）</li>
+</ul>
+<p>Java如何实现原子操作：</p>
+<ul>
+<li>使用循环CAS<ul>
+<li>ABA问题：解决方法追加版本号，可参考<code>AtomicStampedReference</code></li>
+<li>循环时间长开销大</li>
+<li>只能保证一个共享变量的原子操作：解决方法使用锁替换或把多个共享变量合并成一个共享变量来操作，可参考<code>AtomicReference</code></li>
+</ul>
+</li>
+<li>使用锁机制</li>
+</ul>
+<h2 id="Java内存模型"><a href="#Java内存模型" class="headerlink" title="Java内存模型"></a>Java内存模型</h2><h3 id="基础知识-1"><a href="#基础知识-1" class="headerlink" title="基础知识"></a>基础知识</h3><p>命令式编程中，线程之间的通信机制有两种：<strong>共享内存</strong>和<strong>消息传递</strong>。</p>
+<p>从源代码到指令序列可能发生哪些重排序？</p>
+<ul>
+<li>编译器优化的重排序：编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序。</li>
+<li>指令级并行的重排序：如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序。<blockquote>
+<p>如果两个操作访问同一个变量，且这两个操作中有一个为写操作，此时这两个操作之间就存在数据依赖性。</p>
+</blockquote>
+</li>
+<li>内存系统的重排序：由于处理器使用缓存和读/写缓冲区，这使得加载和存储操作看上去可能是在乱序执行。</li>
+</ul>
+<img src="/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/code-to-instruction-reorder.PNG" class="" title="源代码到指令序列的重排序">
+
+<p>Java线程之间的通信由<em>Java内存模型</em>控制，JMM决定一个线程对共享变量的写入何时对另一个线程可见。确保在不同的编译器和不同的处理器平台之上，为程序员提供一致的内存可见性保证。</p>
+<p>对于编译器重排序，JMM的编译器重排序规则会禁止特定类型的编译器重排序（不是所有的编译器重排序都要禁止）。<br>对于处理器重排序，JMM的处理器重排序规则会要求Java编译器在生成指令序列时，插入特定类型的内存屏障指令，通过内存屏障指令来禁止特定类型的处理器重排序。</p>
+<p>Java中所有<strong>实例域</strong>、<strong>静态域</strong>和<strong>数组元素</strong>都存储在堆内存中，堆内存在线程之间共享。</p>
+<hr>
+<ul>
+<li><a href="https://wiki.openjdk.java.net/display/HotSpot/Synchronization" target="_blank" rel="noopener">Synchronization</a></li>
+<li><a href="https://blog.dreamtobe.cn/2015/11/13/java_synchronized/" target="_blank" rel="noopener">Java Synchronised机制</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">
+        <span>------------------本文结束</span>
+        <i class="fa fa-paw"></i>
+        <span>感谢阅读------------------</span>
+        </div>
+    
+</div>
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>xiaojiaC
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://xiaojiac.github.io/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF.html" title="java并发编程的艺术">http://xiaojiac.github.io/java并发编程的艺术.html</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"><i class="fa fa-tag"></i> java</a>
+              <a href="/tags/concurrency/" rel="tag"><i class="fa fa-tag"></i> concurrency</a>
+          </div>
+
+        
+
+
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#并发编程的挑战"><span class="nav-number">1.</span> <span class="nav-text">并发编程的挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#上下文切换"><span class="nav-number">1.1.</span> <span class="nav-text">上下文切换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#死锁"><span class="nav-number">1.2.</span> <span class="nav-text">死锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#资源限制"><span class="nav-number">1.3.</span> <span class="nav-text">资源限制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#java并发机制的底层实现原理"><span class="nav-number">2.</span> <span class="nav-text">java并发机制的底层实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识"><span class="nav-number">2.1.</span> <span class="nav-text">基础知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#volatile"><span class="nav-number">2.2.</span> <span class="nav-text">volatile</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#synchronized"><span class="nav-number">2.3.</span> <span class="nav-text">synchronized</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#锁"><span class="nav-number">2.3.1.</span> <span class="nav-text">锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原子操作"><span class="nav-number">2.4.</span> <span class="nav-text">原子操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java内存模型"><span class="nav-number">3.</span> <span class="nav-text">Java内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识-1"><span class="nav-number">3.1.</span> <span class="nav-text">基础知识</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="xiaojiaC"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">xiaojiaC</p>
+  <div class="site-description" itemprop="description">世上本无路，走的人多了，便成了路。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/xiaojiaC" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;xiaojiaC" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/xiaojia1100" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;xiaojia1100" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:xiaojia1100@163.com" title="E-Mail → mailto:xiaojia1100@163.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://xiaojiac.github.io/hello-world" title="Manual → https:&#x2F;&#x2F;xiaojiac.github.io&#x2F;hello-world"><i class="fa fa-fw fa-bookmark"></i>Manual</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaojiaC</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,205,0' opacity='0.5' zIndex='-1' count='66' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+  
+
+  <script async src="/js/cursor/fireworks.js"></script>
+
+
+
+
+  <script src="/js/activate-power-mode.min.js"></script>
+  <script>
+    POWERMODE.colorful = true;
+    POWERMODE.shake = false;
+    document.body.addEventListener('input', POWERMODE);
+  </script>
+
+
+
+
+</body>
+</html>
