@@ -9,7 +9,7 @@ cache: npm
 
 branches:
   only:
-    - master # build master branch only
+    - master
 
 script:
   - hexo generate # generate static files
