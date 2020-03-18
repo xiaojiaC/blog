@@ -12,7 +12,7 @@ branches:
     - master
 
 script:
-  - hexo generate # generate static files
+  - hexo generate
 
 deploy:
   provider: pages
