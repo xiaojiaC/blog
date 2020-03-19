@@ -13,10 +13,10 @@
 <link rel="stylesheet" href="/blog/css/main.css">
 
 <link rel="stylesheet" href="//fonts.googleapis.com/css?family=SimHei, Verdana, sans-serif:300,300italic,400,400italic,700,700italic|KaiTi, "Microsoft YaHei", Georgia, sans:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
-<link rel="stylesheet" href="/blog/lib/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
   <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
-  <link rel="stylesheet" href="/blog/lib/pace/pace-theme-minimal.min.css">
-  <script src="/blog/lib/pace/pace.min.js"></script>
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/pace-js@1/themes/blue/pace-theme-minimal.css">
+  <script src="//cdn.jsdelivr.net/npm/pace-js@1/pace.min.js"></script>
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
@@ -34,8 +34,9 @@
 <meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/markword-64bit-vm.PNG">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/synchonized.png">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/code-to-instruction-reorder.PNG">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/java-memory-barrier.PNG">
 <meta property="article:published_time" content="2020-03-16T11:55:32.000Z">
-<meta property="article:modified_time" content="2020-03-18T14:10:24.213Z">
+<meta property="article:modified_time" content="2020-03-19T11:40:08.940Z">
 <meta property="article:author" content="xiaojiaC">
 <meta property="article:tag" content="java">
 <meta property="article:tag" content="concurrency">
@@ -144,6 +145,11 @@
     <a href="/blog/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
 
   </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/blog/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
       <li class="menu-item menu-item-search">
         <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
         </a>
@@ -247,14 +253,14 @@
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>3.4k</span>
+              <span>5.8k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="fa fa-clock-o"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -402,7 +408,7 @@
 <ul>
 <li>编译器优化的重排序：编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序。</li>
 <li>指令级并行的重排序：如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序。<blockquote>
-<p>如果两个操作访问同一个变量，且这两个操作中有一个为写操作，此时这两个操作之间就存在数据依赖性。</p>
+<p>如果两个操作访问<em>同一个变量</em>，且这两个操作中<em>有一个为写操作</em>，此时这两个操作之间就存在数据依赖性。</p>
 </blockquote>
 </li>
 <li>内存系统的重排序：由于处理器使用缓存和读/写缓冲区，这使得加载和存储操作看上去可能是在乱序执行。</li>
@@ -410,8 +416,71 @@
 <img src="/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/code-to-instruction-reorder.PNG" class="" title="源代码到指令序列的重排序">
 
 <p>Java线程之间的通信由<em>Java内存模型</em>控制，JMM决定一个线程对共享变量的写入何时对另一个线程可见。确保在不同的编译器和不同的处理器平台之上，为程序员提供一致的内存可见性保证。</p>
-<p>对于编译器重排序，JMM的编译器重排序规则会禁止特定类型的编译器重排序（不是所有的编译器重排序都要禁止）。<br>对于处理器重排序，JMM的处理器重排序规则会要求Java编译器在生成指令序列时，插入特定类型的内存屏障指令，通过内存屏障指令来禁止特定类型的处理器重排序。</p>
-<p>Java中所有<strong>实例域</strong>、<strong>静态域</strong>和<strong>数组元素</strong>都存储在堆内存中，堆内存在线程之间共享。</p>
+<p>对于编译器重排序，JMM的编译器重排序规则会禁止特定类型的编译器重排序（不是所有的编译器重排序都要禁止）。<br>对于处理器重排序，JMM的处理器重排序规则会要求Java编译器在生成指令序列时，插入内存屏障指令来禁止特定类型的处理器重排序。</p>
+<div class="note info">
+            <p>常见的处理器（基本都有写缓冲区）都允许Store-Load重排序；都不允许对存在数据依赖的操作做重排序。</p>
+          </div>
+
+<h3 id="happens-before规则"><a href="#happens-before规则" class="headerlink" title="happens-before规则"></a>happens-before规则</h3><p>happens-before规则：</p>
+<ul>
+<li>程序顺序规则：一个线程中的每个操作，happens-before于该线程中的任意后续操作。</li>
+<li>监视器锁规则：对一个锁的解锁，happens-before于随后对这个锁的加锁。</li>
+<li>volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的读。</li>
+<li><code>start()</code>规则：如果线程A执行操作<code>ThreadB.start()</code>（启动线程B），那么A线程的<code>ThreadB.start()</code>操作happens-before于线程B中的任意操作。</li>
+<li><code>join()</code>规则：如果线程A执行操作<code>ThreadB.join()</code>并成功返回，那么线程B中的任意操作happens-before于线程A从<code>ThreadB.join()</code>操作成功返回。</li>
+<li>中断法则：一个线程调用另一个线程的<code>interrupt()</code> happens-before于被中断的线程发现中断。</li>
+<li>终结法则：一个对象的构造函数的结束happens-before于这个对象finalizer的开始。</li>
+<li>传递性规则：如果A happens-before B，且B happens-before C，那么A happens-before C。</li>
+</ul>
+<div class="note warning">
+            <p>两个操作之间具有happens-before关系，并不意味着前一个操作必须要在后一个操作之前执行！happens-before仅仅要求前一个操作（执行的结果）对后一个操作可见，且前一个操作按顺序排在第二个操作之前。</p>
+          </div>
+
+<h3 id="as-if-serial语义"><a href="#as-if-serial语义" class="headerlink" title="as-if-serial语义"></a>as-if-serial语义</h3><p>as-if-serial语义：不管怎么重排序（编译器和处理器为了提高并行度），（单线程）程序的执行结果不能被改变。编译器、runtime和处理器都必须遵守as-if-serial语义。</p>
+<h3 id="顺序一致性内存模型"><a href="#顺序一致性内存模型" class="headerlink" title="顺序一致性内存模型"></a>顺序一致性内存模型</h3><p>顺序一致性内存模型有哪些特性？</p>
+<ul>
+<li>一个线程中的所有操作必须按照程序的顺序串行执行。</li>
+<li>（不管程序是否同步）所有线程都只能看到一个单一的操作执行顺序。在顺序一致性内存模型中，每个操作都必须原子执行且立刻对所有线程可见。</li>
+</ul>
+<p>在JMM中，临界区内的代码可以重排序（但JMM不允许临界区内的代码“逸出”到临界区之外，那样会破坏监视器的语义）。<br>JMM不保证对64位的long型和double型变量的写操作具有原子性。</p>
+<h3 id="volatile的内存语义"><a href="#volatile的内存语义" class="headerlink" title="volatile的内存语义"></a>volatile的内存语义</h3><p>理解volatile特性的一个好方法是：把对volatile变量的单个读/写，看成是使用<strong>同一个锁</strong>对这些<strong>单个</strong>读/写操作做了同步。</p>
+<p>这意味着，1. 对一个volatile变量的读，总是能看到（任意线程）对这个volatile变量最后的写入。2. 即使是64位的long型和double型变量，只要它是volatile变量，对该变量的单个读/写就具有原子性。</p>
+<p>内存屏障：</p>
+<p>硬件层的内存屏障分为两种：<code>Load Barrier</code> 和 <code>Store Barrier</code> 即读屏障和写屏障。</p>
+<div class="tabs" id="内存屏障"><ul class="nav-tabs"><li class="tab active"><a href="#内存屏障-1">作用</a></li><li class="tab"><a href="#内存屏障-2">分类</a></li><li class="tab"><a href="#内存屏障-3">java中的分类</a></li></ul><div class="tab-content"><div class="tab-pane active" id="内存屏障-1"><ol>
+<li>阻止屏障两侧的指令重排序；</li>
+<li>强制把写缓冲区/高速缓存中的脏数据等写回主内存，让缓存中相应的数据失效（必须从主内存从新加载）。</li>
+</ol></div><div class="tab-pane" id="内存屏障-2"><ul>
+<li>对于<code>Load Barrier</code>来说，在指令前插入<code>Load Barrier</code>，可以让高速缓存中的数据失效，强制从新从主内存加载数据；</li>
+<li>对于<code>Store Barrier</code>来说，在指令后插入<code>Store Barrier</code>，能让写入缓存中的最新数据更新写入主内存，让其他线程可见。</li>
+</ul></div><div class="tab-pane" id="内存屏障-3"><img src="/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/java-memory-barrier.PNG" class=""></div></div></div>
+
+<p>volatile的编译器重排序规则：</p>
+<ul>
+<li>当第一个操作是volatile写，第二个操作是volatile读时，不能重排序。</li>
+<li>当第一个操作是volatile读时，不管第二个操作是什么，都不能重排序。</li>
+<li>当第二个操作是volatile写时，不管第一个操作是什么，都不能重排序。</li>
+</ul>
+<p>volatile的处理器内存屏障插入策略：</p>
+<ul>
+<li>在每个volatile写操作的前面插入一个<code>StoreStore</code>屏障。</li>
+<li>在每个volatile写操作的后面插入一个<code>StoreLoad</code>屏障。</li>
+<li>在每个volatile读操作的后面插入一个<code>LoadLoad</code>屏障。</li>
+<li>在每个volatile读操作的后面插入一个<code>LoadStore</code>屏障。</li>
+</ul>
+<div class="note ">
+            <p>我的疑惑：为什么不需要在每个volatile写操作的前面插入一个LoadStore屏障，来防止第一个普通读和第二个volatile写操作重排序？？？</p>
+          </div>
+
+<h3 id="锁的内存语义"><a href="#锁的内存语义" class="headerlink" title="锁的内存语义"></a>锁的内存语义</h3><p>在<code>ReentrantLock</code>中，调用<code>lock()</code>方法获取锁；调用<code>unlock()</code>方法释放锁。</p>
+<p>加锁方法首先读volatile变量<code>state</code>，在释放锁的最后写volatile变量<code>state</code>。根据volatile的happens-before规则，释放锁的线程在写volatile变量之前可见的共享变量，在获取锁的线程读取同一个volatile变量后将立即变得对获取锁的线程可见。</p>
+<p>获取锁中的CAS又如何同时具有volatile读和volatile写的内存语义？</p>
+<p>从编译器角度：<br>编译器不会对volatile读与volatile读后面的任意内存操作重排序；编译器不会对volatile写与volatile写前面的任意内存操作重排序。组合这两个条件，意味着为了同时实现volatile读和volatile写的内存语义，编译器不能对CAS与CAS前面和后面的任意内存操作重排序。</p>
+<p>从处理器角度：<br>在常见的intel X86处理器中，源码中会根据当前处理器的类型来决定是否为<code>cmpxchg</code>指令添加<code>lock</code>前缀。lock前缀的第2点和第3点所具有的内存屏障效果，足以同时实现volatile读和volatile写的内存语义。</p>
+<blockquote>
+<p>intel的手册对lock前缀的说明: 1. 确保对内存的读-改-写操作原子执行。2. 禁止该指令，与之前和之后的读和写指令重排序。3. 把写缓冲区中的所有数据刷新到内存中。</p>
+</blockquote>
+<p>综上述，可见<code>ReentrantLock</code>内存语义实现利用了volatile变量的写-读所具有的内存语义和CAS所附带的volatile读和volatile写的内存语义。</p>
 <hr>
 <ul>
 <li><a href="https://wiki.openjdk.java.net/display/HotSpot/Synchronization" target="_blank" rel="noopener">Synchronization</a></li>
@@ -522,7 +591,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#并发编程的挑战"><span class="nav-number">1.</span> <span class="nav-text">并发编程的挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#上下文切换"><span class="nav-number">1.1.</span> <span class="nav-text">上下文切换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#死锁"><span class="nav-number">1.2.</span> <span class="nav-text">死锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#资源限制"><span class="nav-number">1.3.</span> <span class="nav-text">资源限制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#java并发机制的底层实现原理"><span class="nav-number">2.</span> <span class="nav-text">java并发机制的底层实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识"><span class="nav-number">2.1.</span> <span class="nav-text">基础知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#volatile"><span class="nav-number">2.2.</span> <span class="nav-text">volatile</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#synchronized"><span class="nav-number">2.3.</span> <span class="nav-text">synchronized</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#锁"><span class="nav-number">2.3.1.</span> <span class="nav-text">锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原子操作"><span class="nav-number">2.4.</span> <span class="nav-text">原子操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java内存模型"><span class="nav-number">3.</span> <span class="nav-text">Java内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识-1"><span class="nav-number">3.1.</span> <span class="nav-text">基础知识</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#并发编程的挑战"><span class="nav-number">1.</span> <span class="nav-text">并发编程的挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#上下文切换"><span class="nav-number">1.1.</span> <span class="nav-text">上下文切换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#死锁"><span class="nav-number">1.2.</span> <span class="nav-text">死锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#资源限制"><span class="nav-number">1.3.</span> <span class="nav-text">资源限制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#java并发机制的底层实现原理"><span class="nav-number">2.</span> <span class="nav-text">java并发机制的底层实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识"><span class="nav-number">2.1.</span> <span class="nav-text">基础知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#volatile"><span class="nav-number">2.2.</span> <span class="nav-text">volatile</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#synchronized"><span class="nav-number">2.3.</span> <span class="nav-text">synchronized</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#锁"><span class="nav-number">2.3.1.</span> <span class="nav-text">锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原子操作"><span class="nav-number">2.4.</span> <span class="nav-text">原子操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java内存模型"><span class="nav-number">3.</span> <span class="nav-text">Java内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础知识-1"><span class="nav-number">3.1.</span> <span class="nav-text">基础知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#happens-before规则"><span class="nav-number">3.2.</span> <span class="nav-text">happens-before规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#as-if-serial语义"><span class="nav-number">3.3.</span> <span class="nav-text">as-if-serial语义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#顺序一致性内存模型"><span class="nav-number">3.4.</span> <span class="nav-text">顺序一致性内存模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#volatile的内存语义"><span class="nav-number">3.5.</span> <span class="nav-text">volatile的内存语义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#锁的内存语义"><span class="nav-number">3.6.</span> <span class="nav-text">锁的内存语义</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -641,11 +710,11 @@
   
   
   <script color='0,205,0' opacity='0.5' zIndex='-1' count='66' src="/blog/lib/canvas-nest/canvas-nest.min.js"></script>
-  <script src="/blog/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
   <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
-  <script src="/blog/lib/velocity/velocity.min.js"></script>
-  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
 
 <script src="/blog/js/utils.js"></script>
 
@@ -687,12 +756,12 @@
 
   
 
-  <script async src="/js/cursor/fireworks.js"></script>
+  <script async src="/blog/js/cursor/fireworks.js"></script>
 
 
 
 
-  <script src="/js/activate-power-mode.min.js"></script>
+  <script src="/blog/js/activate-power-mode.min.js"></script>
   <script>
     POWERMODE.colorful = true;
     POWERMODE.shake = false;
