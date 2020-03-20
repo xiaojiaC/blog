@@ -740,6 +740,103 @@ synchronized | [Lock](https://docs.oracle.com/javase/7/docs/api/java/util/concur
 - `Exchanger`（交换者）：用于进行线程间的数据交换。它提供一个同步点，在这个同步点，两个线程可以交换彼此的数据。
 - Guava `RateLimiter`（限流器）：使用漏桶算法（利用一个缓存区，请求进入系统时，无论请求的速率如何都先保存在缓存区内，然后以固定的流速流出缓存区进行处理）或令牌桶算法（桶中存放的不再是请求，而是令牌，处理程序只有拿到令牌后才能对请求进行处理，无令牌时程序要么等待令牌，要么丢弃请求，为了限制流速，会在每个单位时间产生一定量的令牌放入桶中）对请求进行限流。
 
+## java中的线程池
+
+{% asset_img thread-pool-processing.png %}
+
+1. 如果当前运行的线程少于`corePoolSize`，则创建新线程来执行任务（{% label danger@注意：执行这一步骤需要获取全局锁 %}）。
+2. 如果运行的线程等于或多于`corePoolSize`，则将任务加入`BlockingQueue`。
+3. 如果无法将任务加入`BlockingQueue`（队列已满），则创建新的线程来处理任务（{% label danger@注意：执行这一步骤需要获取全局锁 %}）。
+4. 如果创建新线程将使当前运行的线程超出`maximumPoolSize`，任务将被拒绝，并调用`RejectedExecutionHandler.rejectedExecution()`方法。
+
+### API
+
+#### ThreadPoolExecutor
+```java
+public ThreadPoolExecutor(int corePoolSize, // 核心线程数
+                          int maximumPoolSize, // 最大线程数
+                          long keepAliveTime, // 线程数量超过核心线程时，多余的空闲线程的最大存活时间
+                          TimeUnit unit, // 时间的单位
+                          BlockingQueue<Runnable> workQueue, // 阻塞队列，暂存被提交但尚未执行的任务
+                          ThreadFactory threadFactory, // 创建工作线程的工厂
+                          RejectedExecutionHandler handler) { // 拒绝策略，任务太多来不及处理时如何拒绝
+    ...
+}
+```
+
+`BlockingQueue`（阻塞队列）：
+- `ArrayBlockingQueue`：是一个基于数组结构的有界阻塞队列，此队列按FIFO（先进先出）原则对元素进行排序。
+- `LinkedBlockingQueue`：一个基于链表结构的阻塞队列，此队列按FIFO（先进先出）排序元素，吞吐量通常要高于`ArrayBlockingQueue`。
+- `SynchronousQueue`：一个不存储元素的阻塞队列。每个插入操作必须等到另一个线程调用移除操作，否则插入操作一直处于阻塞状态，吞吐量通常要高于`LinkedBlockingQueue`。
+- `PriorityBlockingQueue`：一个具有优先级的无限阻塞队列。
+
+`RejectedExecutionHandler`（饱和策略）：
+- `AbortPolicy`：直接抛出异常。
+- `CallerRunsPolicy`：只用调用者所在线程来运行任务。
+- `DiscardOldestPolicy`：丢弃队列里最老的一个任务，并执行当前任务。
+- `DiscardPolicy`：不处理，丢弃掉。
+
+#### 向线程池提交任务
+- `execute()`：用于提交不需要返回值的任务，所以无法判断任务是否被线程池执行成功。
+- `submit()`：用于提交需要返回值的任务。
+
+#### 关闭线程池
+- `shutdown()`：只是将线程池的状态设置成`SHUTDOWN`状态，然后中断所有没有正在执行任务的线程。
+- `shutdownNow()`：首先将线程池的状态设置成`STOP`，然后尝试停止所有的正在执行或暂停任务的线程，并返回等待执行任务的列表。
+
+#### Executors中的方法
+
+- `FixedThreadPool`(容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`)：适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场景，它适用于负载比较重的服务器。
+- `SingleThreadExecutor`(容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`)：适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多个线程是活动的应用场景。
+- `CachedThreadPool`(核心线程数为`0`,最大线程数为`Integer.MAX_VALUE`，没有容量的`SynchronousQueue`)：是大小无界的线程池，适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器。
+- `ScheduledThreadPoolExecutor`(`DelayQueue`无界队列)：适用于需要多个后台线程执行周期任务，同时为了满足资源管理的需求而需要限制后台线程的数量的应用场景。
+- `SingleThreadScheduledExecutor`：适用于需要单个后台线程执行周期任务，同时需要保证顺序地执行各个任务的应用场景。
+
+### 合理配置线程池
+
+线程数配置：
+- 按任务的性质拆分：
+<u>CPU密集型任务</u>应配置尽可能小的线程，如配置`Ncpu+1`个线程的线程池。由于<u>IO密集型任务</u>线程并不是一直在执行任务，则应配置尽可能多的线程，如`2*Ncpu`。<u>混合型的任务</u>，如果可以拆分，将其拆分成一个CPU密集型任务和一个IO密集型任务，只要这两个任务执行的时间相差不是太大，那么分解后执行的吞吐量将高于串行执行的吞吐量。如果这两个任务执行时间相差太大，则没必要进行分解。可以通过`Runtime.getRuntime().availableProcessors()`方法获得当前设备的CPU个数。
+
+- 按任务优先级拆分：
+优先级不同的任务可以使用优先级队列`PriorityBlockingQueue`来处理。它可以让优先级高的任务先执行。但需要注意如果一直有优先级高的任务提交到队列里，那么优先级低的任务可能永远不能执行。
+
+- 按任务执行时间拆分：
+执行时间不同的任务可以交给不同规模的线程池来处理，或者可以使用优先级队列，让执行时间短的任务先执行。
+
+- 按任务的依赖性拆分:
+依赖数据库连接池的任务，因为线程提交SQL后需要等待数据库返回结果，等待的时间越长，则CPU空闲时间就越长，那么线程数应该设置得越大，这样才能更好地利用CPU。
+
+```
+    Ncpu = cpu的数量
+    Ucpu = 目标cpu的使用率，0 ≤ Ucpu ≤ 1
+    W/C = 等待时间与计算时间的比率
+    为保持处理器达到期望的使用率，最优的线程池大小等于：Nthreads = Ncpu * Ucpu * (1 + W/C)
+```
+
+队列配置：
+- {% label primary@建议使用有界队列 %}
+- 吞吐量比较：
+`SynchronousQueue(Executors.newCachedThreadPool)`>`LinkedBlockingQueue(Executors.newFixedThreadPool())`>`ArrayBlockingQueue`
+
+拒绝策略配置：
+- 也可以根据应用场景需要来实现`RejectedExecutionHandler`接口自定义策略。如记录日志或持久化存储不能处理的任务。
+
+空闲存活时间配置：
+- 任务很多，并且每个任务执行的时间比较短，可以调大时间，提高线程的利用率。
+
+### 监控线程池
+
+通过线程池提供的参数进行监控，在监控线程池的时候可以使用以下属性：
+
+- `taskCount`：线程池需要执行的任务数量。
+- `completedTaskCount`：线程池在运行过程中已完成的任务数量，小于或等于`taskCount`。
+- `largestPoolSize`：线程池里曾经创建过的最大线程数量。通过这个数据可以知道线程池是否曾经满过。如该数值等于线程池的最大大小，则表示线程池曾经满过。
+- `getPoolSize`：线程池的线程数量。
+- `getActiveCount`：获取活动的线程数量。
+
+通过继承线程池来自定义线程池，重写线程池的`beforeExecute`、`afterExecute`和`terminated`方法，在任务执行前、执行后和线程池关闭前执行一些代码来进行监控。
+
 
 ----
 * *《Java并发编程的艺术》*
