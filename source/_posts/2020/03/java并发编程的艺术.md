@@ -59,6 +59,15 @@ tags:
   <!-- endtab -->
 {% endtabs %}
 
+### 活锁
+
+活锁：任务或者执行者没有被阻塞，但由于某些条件没有满足，导致一直重复尝试，失败，尝试，失败，......
+
+规避方法:
+- 引入一些随机性
+- 约定重试机制避免再次冲突
+
+
 ### 资源限制
 
 硬件资源限制：可以考虑使用集群并行执行程序。
@@ -109,7 +118,7 @@ tags:
 
 实现原理：
 
-> JVM基于进入和退出Monitor对象来实现方法同步和代码块同步，但两者的实现细节不一样。代码块同步是使用`monitorenter`和`monitorexit`指令实现的，而方法同步是使用另外一种方式实现的，细节在JVM规范里并没有详细说明。但是，方法的同步同样可以使用这两个指令来实现。`monitorenter`指令是在编译后插入到同步代码块的开始位置，而`monitorexit`是插入到方法结束处和异常处，JVM要保证每个`monitorenter`必须有对应的`monitorexit`与之配对。任何对象都有一个monitor与之关联，当且一个monitor被持有后，它将处于锁定状态。线程执行到`monitorenter`指令时，将会尝试获取对象所对应的monitor的所有权，即尝试获得对象的锁。
+> JVM基于进入和退出Monitor对象来实现方法同步和代码块同步，但两者的实现细节不一样。代码块同步是使用`monitorenter`和`monitorexit`指令实现的，而方法同步是使用另外一种方式实现的（方法修饰符上的`ACC_SYNCHRONIZED`），细节在JVM规范里并没有详细说明。但是，方法的同步同样可以使用这两个指令来实现。`monitorenter`指令是在编译后插入到同步代码块的开始位置，而`monitorexit`是插入到方法结束处和异常处，JVM要保证每个`monitorenter`必须有对应的`monitorexit`与之配对。任何对象都有一个monitor与之关联，当且一个monitor被持有后，它将处于锁定状态。线程执行到`monitorenter`指令时，将会尝试获取对象所对应的monitor的所有权，即尝试获得对象的锁。
 
 `synchronized`用的锁是存在Java对象头里的。其存储结构如下示：
 
@@ -145,7 +154,7 @@ Java如何实现原子操作：
 - 使用锁机制
 
 
-## Java内存模型
+## java内存模型
 ### 基础知识
 
 命令式编程中，线程之间的通信机制有两种：**共享内存**和**消息传递**。
@@ -165,22 +174,6 @@ Java线程之间的通信由*Java内存模型*控制，JMM决定一个线程对�
 
 {% note info %}
 常见的处理器（基本都有写缓冲区）都允许Store-Load重排序；都不允许对存在数据依赖的操作做重排序。
-{% endnote %}
-
-### happens-before规则
-
-happens-before规则：
-- 程序顺序规则：一个线程中的每个操作，happens-before于该线程中的任意后续操作。
-- 监视器锁规则：对一个锁的解锁，happens-before于随后对这个锁的加锁。
-- volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的读。
-- `start()`规则：如果线程A执行操作`ThreadB.start()`（启动线程B），那么A线程的`ThreadB.start()`操作happens-before于线程B中的任意操作。
-- `join()`规则：如果线程A执行操作`ThreadB.join()`并成功返回，那么线程B中的任意操作happens-before于线程A从`ThreadB.join()`操作成功返回。
-- 中断法则：一个线程调用另一个线程的`interrupt()` happens-before于被中断的线程发现中断。
-- 终结法则：一个对象的构造函数的结束happens-before于这个对象finalizer的开始。
-- 传递性规则：如果A happens-before B，且B happens-before C，那么A happens-before C。
-
-{% note warning %}
-两个操作之间具有happens-before关系，并不意味着前一个操作必须要在后一个操作之前执行！happens-before仅仅要求前一个操作（执行的结果）对后一个操作可见，且前一个操作按顺序排在第二个操作之前。
 {% endnote %}
 
 ### as-if-serial语义
@@ -253,11 +246,502 @@ volatile的处理器内存屏障插入策略：
 
 综上述，可见`ReentrantLock`内存语义实现利用了volatile变量的写-读所具有的内存语义和CAS所附带的volatile读和volatile写的内存语义。
 
+### final域的内存语义
+
+final域的编译器重排序规则：
+- 在构造函数内对一个final域/final域引用的对象成员域的写入，与随后把这个被构造对象的引用赋值给一个引用变量，这两个操作之间不能重排序。
+- 初次读一个包含final域的对象的引用，与随后初次读这个final域，这两个操作之间不能重排序。
+
+final域的处理器内存屏障插入策略：
+- 编译器会在final域的写之后，构造函数return之前，插入一个`StoreStore`屏障。禁止处理器把final域的写重排序到构造函数之外。
+- 编译器会在读final域操作的前面插入一个`LoadLoad`屏障。禁止处理器把存在间接依赖关系的操作做重排序。
+
+final域为引用类型时，若多个线程同时访问其内的可变状态变量，仍需要使用同步原语（lock或volatile）来确保内存可见性。
+
+{% note danger %}
+`final`引用不能从构造函数内“逸出”。
+{% endnote %}
+
+### happens-before
+
+happens-before定义：
+
+JMM对程序员的{% label danger@承诺 %}：如果一个操作happens-before另一个操作，那么第一个操作的执行结果将对第二个操作可见，而且第一个操作的执行顺序排在第二个操作之前。
+
+JMM对编译器和处理器重排序的约束原则：两个操作之间存在happens-before关系，<u>并不意味着Java平台的具体实现必须要按照happens-before关系指定的顺序来执行</u>。如果重排序之后的执行结果，与按happens-before关系来执行的结果一致，那么这种重排序并不非法（即JMM允许这种重排序）。
+
+happens-before规则：
+
+- 程序顺序规则：一个线程中的每个操作，happens-before于该线程中的任意后续操作。
+- 监视器锁规则：对一个锁的解锁，happens-before于随后对这个锁的加锁。
+- volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的读。
+- `start()`规则：如果线程A执行操作`ThreadB.start()`（启动线程B），那么A线程的`ThreadB.start()`操作happens-before于线程B中的任意操作。
+- `join()`规则：如果线程A执行操作`ThreadB.join()`并成功返回，那么线程B中的任意操作happens-before于线程A从`ThreadB.join()`操作成功返回。
+- 中断法则：一个线程调用另一个线程的`interrupt()` happens-before于被中断的线程发现中断。
+- 终结法则：一个对象的构造函数的结束happens-before于这个对象finalizer的开始。
+- 传递性规则：如果A happens-before B，且B happens-before C，那么A happens-before C。
+
+{% btn #as-if-serial语义, as-if-serial语义 %}保证单线程内程序的执行结果不被改变，{% btn #happens-before, happens-before关系 %}保证正确同步的多线程程序的执行结果不被改变。
+
+## java并发编程的基础
+### 线程
+
+#### 线程优先级
+
+{% note danger %}
+线程优先级不能作为程序正确性的依赖，因为操作系统可以完全不用理会Java线程对于优先级的设定。
+{% endnote %}
+
+#### 线程状态
+
+| [线程状态](https://docs.oracle.com/javase/7/docs/api/java/lang/Thread.State.html) | 含义 | 诱发动作 |
+|---|----|-----|
+| NEW | 新建线程对象，但尚未启动（`start()`） | `new Thread()`
+| RUNNABLE | 一个可运行的线程，包含就绪（等待系统调度分配cpu时间片）和运行中（获得cpu时间片开始运行）两种状态。 | Ready: `Thread.yield()`, Running: 被线程调度器选择
+| BLOCKED | 被阻塞等待监视器锁。 | IO阻塞, 等待进入同步代码块或方法
+| WAITING | 无限期等待另一个线程执行一个特定操作（通知或中断）。 | `Object.wait()`, `Thread.join()`, `LockSupport.park()`
+| TIMED_WAITING | 具有指定等待时间，可以在指定的时间内自行返回。 | `Thread.sleep(long)`,  `Object.wait(long timeout)`,  `Thread.join(long timeout)`,  `LockSupport.parkNanos(Object blocker, long nanos)`, `LockSupport.parkUntil(Object blocker, long deadline)`
+| TERMINATED | 线程已经执行完毕。 | `run()`退出, `Thread.stop()`, 线程中断退出,  阻塞IO被关闭
+
+{% asset_img thread-state-transition.png 线程状态变迁图 %}
+
+#### Daemon线程
+
+可以通过调用`Thread.setDaemon(true)`将线程设置为Daemon线程，<u>但需要在启动线程之前设置</u>。
+
+当Java虚拟机中不存在非Daemon线程时，虚拟机将会退出。Java虚拟机中的所有Daemon线程都需要立即终止。因此在构建Daemon线程时，<u>不能依靠finally块中的内容来确保执行关闭或清理资源的逻辑</u>。
+
+#### API
+
+`thread.start()`：启动线程。启动一个线程前，{% label primary@最好为这个线程设置线程名称 %}，因为这样便于使用jstack分析程序或者进行问题排查。
+`thread.isInterrupted()`：判断线程是否被中断。
+  - 如果线程已经处于终结状态，即使被中断过，在调用该线程对象的`isInterrupted()`时依旧会返回false。
+  - 从Java的API中可以看到，许多声明抛出`InterruptedException`的方法（例如：`Thread.sleep(long millis)`方法）在抛出`InterruptedException`之前，Java虚拟机会先将该线程的中断标识位清除，然后抛出`InterruptedException`，此时调用`isInterrupted()`方法将会返回false。
+
+`Thread.interrupted()`：对当前线程的中断标识位进行复位。
+~~`thread.suspend()`~~：在调用后，线程不会释放已经占有的资源（比如锁），而是占有着资源进入睡眠状态，这样容易引发死锁问题。
+~~`thread.stop()`~~：在终结一个线程时不会保证线程的资源正常释放，通常是没有给予线程完成资源释放工作的机会，因此会导致程序可能工作在不确定状态下。
+~~`thread.sleep()`~~：也是占有着资源进入睡眠状态，而`Object.wait()`则相反。
+`thread.yield()`：使当前线程从执行状态（运行状态）变为可执行态（就绪状态）。cpu调度器会从众多的可执行态里选择，也就是说，当前也就是刚刚的那个线程还是有可能会被再次执行到的，并不是说一定会执行其他线程而该线程在下一次中不会执行到了。
+threadA执行`threadB.join()`：当前线程A等待线程B终止之后才从`threadB.join()`返回。原理利用了等待/通知机制，threadB终止之后会调用线程自身的`notifyAll()`方法，通知所有等待在该线程对象上的线程。
+
+#### 等待/通知机制
+
+1. 使用`wait()`、`notify()`和`notifyAll()`时需要先对调用对象加锁。
+2. 调用`wait()`方法后，线程状态由`RUNNING`变为`WAITING`，并将当前线程放置到对象的**等待队列**。
+3. `notify()`或`notifyAll()`方法调用后，等待线程依旧不会从`wait()`返回，需要调用`notify()`或
+`notifAll()`的线程释放锁之后，等待线程才有机会从`wait()`返回。
+4. `notify()`方法将等待队列中的一个等待线程从**等待队列**中移到**同步队列**中，而`notifyAll()`方法则是将等待队列中所有的线程全部移到同步队列，被移动的线程状态由`WAITING`变为`BLOCKED`。
+5. 从`wait()`方法返回的前提是获得了调用对象的锁。
+
+等待/通知的经典范式：
+
+```java
+    synchronized (对象) {
+        while (条件不满足) {
+            对象.wait();
+        }
+        对应的处理逻辑
+    }
+
+    synchronized (对象) {
+        改变条件
+        对象.notifyAll();
+    }
+```
+
+#### 管道输入/输出流
+
+管道输入/输出流主要用于线程之间的数据传输，而传输的媒介为内存。
+
+对于Piped类型的流，必须先要进行绑定，也就是调用`connect()`方法，如果没有将输入/输出流绑定起来，对于该流的访问将会抛出异常。
+
+## java中的锁
+
+锁的经典范式：
+
+```java
+    Lock lock = new ReentrantLock();
+    lock.lock();
+    try {
+        对应的处理逻辑
+    } finally {
+        lock.unlock();
+    }
+```
+
+在finally块中释放锁，目的是保证在获取到锁之后，最终能够被释放。{% label danger@不要 %}将获取锁的过程写在try块中，因为如果在获取锁（自定义锁的实现）时发生了异常，异常抛出的同时，也会导致莫名的锁释放。
 
 
+### 显示锁和隐式锁的区别
 
+synchronized | [Lock](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/Lock.html)
+-----|--------
+关键字，隐式获取/释放锁 | 接口，显式获取/释放锁
+代码简单，被大多程序员广泛使用，默认推荐　| 代码稍复杂，在try块外获取锁，在finally块中释放锁，迫于性能调优时再用
+ - | 可尝试非阻塞获取锁（线程尝试获取锁，若锁未被其他线程持有，则成功获取并持有锁）
+-  | 可中断获取锁（获取到锁的线程能够响应中断，当该线程被中断时，中断异常将被抛出，同时锁释放）
+ - | 可超时获取锁（在指定的截止时间之前获取锁，若超时仍无法获取锁，则返回）
+
+
+锁是**面向使用者**的，它定义了使用者与锁交互的接口(比如可以允许两个线程并行访问),隐藏了实现细节; 
+同步器**面向锁的实现者**,它简化了锁的实现方式，屏蔽了同步状态管理、线程的排队、等待与唤醒等底层操作。
+
+{% asset_img concurrent-pkg-impl.png concurrent包的实现示意图 %}
+
+### 同步器可重写的方法
+
+方法 | 描述
+----------|--------
+`boolean tryAcquire(int arg)` | 独占式获取同步状态。实现该方法需要查询当前同步状态并判断是否符合预期，然后再进行CAS设置同步状态。
+`boolean tryRelease(int arg)` | 独占式释放同步状态。等待获取同步状态的线程将有机会获取同步状态。
+`int tryAcquireShared(int arg)` | 共享式获取同步状态。返回大于等于0的值表示获取成功，否则获取失败。
+`boolean tryReleaseShared(int arg)` | 共享式释放同步状态。
+`boolean isHeldExclusively()` | 同步状态是否在独占模式下被线程占用。
+
+### 同步器提供的便捷方法
+
+方法 | 描述
+----------|--------
+`void acquire(int arg)` | 独占式获取同步状态，如果当前线程获取同步状态成功，则由该方法返回。否则，将会进入同步队列等待，该方法**忽略中断**。
+`void acquireInterruptibly(int arg) throws InterruptedException` | 同上，但该方法响应中断，在同步队列中等待的线程可以被中断，会抛出InterruptedException并返回。
+`boolean tryAcquireNanos(int arg, long nanosTimeout) throws InterruptedException` | 同上且增加了超时限制，如果在超时时间内没有获取到同步状态将返回false，否则返回true。
+`boolean release(int arg)` | 独占式释放同步状态。释放后会唤醒同步队列中的第一个节点所包含的线程。
+`void acquireShared(int arg)` | 共享式获取同步状态，若同步未获取获取成功则会进入同步队列等待。与独占式获取主要区别在**同一时刻可以有多个线程**获取同步状态。
+`void acquireSharedInterruptibly(int arg) throws InterruptedException` |同上，但该方法响应中断
+`boolean tryAcquireSharedNanos(int arg, long nanosTimeout) throws InterruptedException` | 同上且增加了超时限制
+`boolean releaseShared(int arg)` | 共享式释放同步状态。
+
+### 同步器中节点的含义
+
+[AQS](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/AbstractQueuedSynchronizer.html)#Node的属性 | 含义
+---------|-------
+`int waitStatus` | 状态字段，仅可能取以下几种值：状态字段，仅可能取以下几种值：<br/><br/>`0`: 初始化状态。<br/>`CANCELLED(1)`: 由于取消或中断，节点取消获取同步状态，节点进入该状态后将不会再发生变化。注意取消节点的线程永远不会再阻塞。<br/>`SIGNAL(-1)`: 当前节点的后继节点是(或不久的将来)阻塞的(通过park)，因此当前节点释放或取消同步状态时必须通知(通过unpark)后继节点，为了避免竞争激烈，acquire方法必须首先表明他们需要一个启动信号，然后原子性重试获取同步状态，最后在失败时阻塞。<br/>`CONDITION(-2)`: 此节点当前处于条件队列中。直到被转移(signal/signalAll)才会被加入到同步队列中，转移后状态将被设置为0。<br/>`PROPAGATE(-3)`: releaseShared应该传播给其他节点。在doReleaseShared中设置（仅限头节点）以确保继续传播，即使其他操作已经介入。
+`Node prev` | 前驱节点，当节点加入到同步队列时被设置（CAS尾部加入）
+`Node next` | 后继节点
+`Thread thread` | 获取同步状态的线程
+`Node nextWaiter` | 条件队列中的后继节点，或特殊值`SHARED`。因为条件队列只有在保持独占模式时才被访问，所以我们只需要一个简单的链接队列来在节点等待条件时保存节点。然后将它们转移到同步队列中以重新获取同步状态。并且因为condition只能是独占的，所以我们通过使用SHARED特殊值来指示共享模式。
+
+### Object的监视器方法与Condition接口对比
+
+对比项 | Object监视器方法 | [Condition](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/Condition.html)
+---|---|----
+前置条件 | 获取对象的监视器锁 | 调用`Lock.lock()`获取锁<br/> 调用`Lock.newCondition()`获取`Condition`对象
+调用方法 | 直接调用，如：`object.wait()` | 直接调用，如：`condition.await()`
+等待队列个数 | 一个 | 多个
+当前线程释放锁并进入等待队列 | 支持 | 支持
+当前线程释放锁并进入等待队列，在等待状态中*不*响应中断 | 不支持 | 支持
+当前线程释放锁并进入超时等待状态 | 支持 | 支持
+当前线程释放锁并进入等待状态到将来的某个时间 | 不支持 | 支持
+唤醒等待队列中的一个线程 | 支持 | 支持
+唤醒等待队列中的全部线程 | 支持 | 支持
+
+{% asset_img sync-and-wait-queue.png 同步队列和等待队列的模样 %}
+
+### 通过源码看世界
+#### AQS超时获取锁的源代码
+
+```java
+    // acquire，acquireInterruptibly与此大同小异
+    public final boolean tryAcquireNanos(int arg, long nanosTimeout)
+            throws InterruptedException {
+        if (Thread.interrupted()) 
+            throw new InterruptedException();
+        return tryAcquire(arg) || // 先尝试获取一次
+            doAcquireNanos(arg, nanosTimeout); // 尝试失败，将其包装成Node，放入等待队列，并等待前驱节点唤醒
+    }
+
+    private boolean doAcquireNanos(int arg, long nanosTimeout)
+            throws InterruptedException {
+        if (nanosTimeout <= 0L)
+            return false;
+        final long deadline = System.nanoTime() + nanosTimeout;
+        final Node node = addWaiter(Node.EXCLUSIVE); // 包装成独占模式等待者
+        boolean failed = true;
+        try {
+            for (;;) {
+                final Node p = node.predecessor();
+                if (p == head && tryAcquire(arg)) { // 若是头节点，尝试获取同步状态，成功则将自己设置成头节点
+                    setHead(node);
+                    p.next = null; // 释放前驱节点引用，便于GC回收原头节点
+                    failed = false;
+                    return true;
+                }
+                nanosTimeout = deadline - System.nanoTime();
+                if (nanosTimeout <= 0L) // 超时仍未获取到，则返回fasle
+                    return false;
+                if (shouldParkAfterFailedAcquire(p, node) && // 如果前驱节点状态(SIGNAL)正常，则等待；若已取消(CANCELLED)为其寻找一个正常的前驱节点；否则CAS设置前驱节点状态为正常态
+                    nanosTimeout > spinForTimeoutThreshold) // 超时时间大于阈值，则使用parkNanos超时等待；否则采用高速自旋重试
+                    LockSupport.parkNanos(this, nanosTimeout);
+                if (Thread.interrupted()) // 被唤醒发现线程中断，则抛出中断异常
+                    throw new InterruptedException();
+            }
+        } finally {
+            if (failed) 
+                cancelAcquire(node); // 超时或中断退出时，则取消获取同步状态
+        }
+    }
+```
+
+{% asset_img aqs-doAcquireNanos.png AQS超时获取锁的流程图 %}
+
+#### AQS释放锁的源代码
+
+```java
+    public final boolean release(int arg) {
+        if (tryRelease(arg)) { // 尝试释放同步状态
+            Node h = head;
+            if (h != null && h.waitStatus != 0)
+                unparkSuccessor(h); // 释放成功，唤醒头节点的后继节点
+            return true;
+        }
+        return false;
+    }
+
+    private void unparkSuccessor(Node node) {
+        int ws = node.waitStatus;
+        if (ws < 0) 
+            compareAndSetWaitStatus(node, ws, 0);　// 将头节点状态修改为0
+
+        Node s = node.next;
+        if (s == null || s.waitStatus > 0) { // 头节点不存在后继节点或后继节点已取消获取同步状态
+            s = null;　
+            // 从前往后寻找不一定能找到刚刚加入队列的后继节点, 因为在Node addWaiter(Node mode)中，是先CAS设置尾节点，再设置前驱节点和尾节点的引用关系
+            for (Node t = tail; t != null && t != node; t = t.prev) 
+                if (t.waitStatus <= 0) // 从队尾往前找，找到第一个需要唤醒的节点
+                    s = t;
+        }
+        if (s != null)
+            LockSupport.unpark(s.thread); // 唤醒线程
+    }
+```
+
+#### ReentrantLock非公平获取锁源代码
+
+```java
+    // NonfairSync类中
+    final void lock() {
+        if (compareAndSetState(0, 1)) // 非公平锁直接尝试获取锁
+            setExclusiveOwnerThread(Thread.currentThread());
+        else
+            acquire(1);
+    }
+
+    // Sync父类中
+    final boolean nonfairTryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) { // 目前没有其他线程获得锁，当前线程就可以尝试获取锁
+            if (compareAndSetState(0, acquires)) { // CAS修改同步状态
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        else if (current == getExclusiveOwnerThread()) { // 当前线程持有锁，支持重入
+            int nextc = c + acquires;
+            if (nextc < 0) // overflow
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc); // 已持有锁，可直接修改
+            return true;
+        }
+        return false; // 修改失败返回false
+    }
+```
+
+#### ReentrantLock公平获取锁源代码
+
+```java
+    // FairSync类中
+    final void lock() {
+        acquire(1);
+    }
+
+    protected final boolean tryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            if (!hasQueuedPredecessors() && // 多了这个判断，需要判断队列中是否还有前驱节点线程
+                compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0)
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+```
+
+#### ReentrantLock释放锁的源代码
+
+```java
+    protected final boolean tryRelease(int releases) {
+        int c = getState() - releases;
+        if (Thread.currentThread() != getExclusiveOwnerThread()) // 当前线程未持有锁，不可释放
+            throw new IllegalMonitorStateException();
+        boolean free = false;
+        if (c == 0) { // 由于锁可重入，当同步状态等于0时，才代表真正释放掉
+            free = true;
+            setExclusiveOwnerThread(null);
+        }
+        setState(c);
+        return free;
+    }
+```
+
+#### ReentrantReadWriteLock获取释放锁源代码
+
+```java
+    /*以高16位表示所有线程获取读锁数，以低16位表示单个线程获取写锁数 */
+    
+    static final int SHARED_SHIFT   = 16;
+    static final int SHARED_UNIT    = (1 << SHARED_SHIFT); // 0x00010000
+    static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1; // 低16位全为1
+
+    static int sharedCount(int c)    { return c >>> SHARED_SHIFT; } // 根据同步状态计算已持有的读锁数
+    static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; } // 根据同步状态计算已持有的写锁数
+    
+    protected final boolean tryAcquire(int acquires) { // 获取独占锁（写锁）
+        Thread current = Thread.currentThread();
+        int c = getState();
+        int w = exclusiveCount(c); // 持有的写锁数
+        if (c != 0) { 
+            // (Note: if c != 0 and w == 0 then shared count != 0)
+            // 如果同步状态不为0但是写锁数为0,代表持有读锁(不为0)
+            if (w == 0 || current != getExclusiveOwnerThread()) // 已持有读锁或不是当前线程持有写锁，均不可再获取写锁
+                return false;
+            if (w + exclusiveCount(acquires) > MAX_COUNT) // 获取写锁数超限
+                throw new Error("Maximum lock count exceeded");
+            setState(c + acquires); // 是当前线程持有写锁，可重入获取
+            return true;
+        }
+        if (writerShouldBlock() || // 公平模式下需要判断同步队列中是否有前驱节点在等待
+            !compareAndSetState(c, c + acquires)) // 无线程获取写锁，CAS获取锁
+            return false;
+        setExclusiveOwnerThread(current); // 获取成功
+        return true;
+    }
+
+    protected final boolean tryRelease(int releases) {
+        if (!isHeldExclusively()) // 非持有写锁的线程不可释放写锁
+            throw new IllegalMonitorStateException();
+        int nextc = getState() - releases;
+        boolean free = exclusiveCount(nextc) == 0; // 因为可重入，当同步状态低16位全为0，才代表成功释放
+        if (free)
+            setExclusiveOwnerThread(null);
+        setState(nextc); 
+        return free;
+    }
+
+    protected final int tryAcquireShared(int unused) { // 获取共享锁(读锁)
+        Thread current = Thread.currentThread();
+        int c = getState();
+        if (exclusiveCount(c) != 0 &&
+            getExclusiveOwnerThread() != current)　// 写锁已被持有但不是当前线程，获取读锁阻塞
+            return -1;
+        int r = sharedCount(c);　// 持有的读锁数
+        if (!readerShouldBlock() && // 公平模式下需要判断同步队列中是否有前驱节点在等待
+            r < MAX_COUNT &&
+            compareAndSetState(c, c + SHARED_UNIT)) { // 无线程持有写锁，所有线程都可获取读锁
+            if (r == 0) { // 无线程持有读锁，标记当前线程首次获取读锁1次
+                firstReader = current;
+                firstReaderHoldCount = 1;
+            } else if (firstReader == current) { // 有线程持有读锁，若当前线程是首次获取读锁的线程，则增加读锁持有数
+                firstReaderHoldCount++;
+            } else { // 有线程持有读锁，但不是首次获取读锁的线程，则初始化线程相应读锁持有数
+                HoldCounter rh = cachedHoldCounter;
+                if (rh == null || rh.tid != getThreadId(current)) // 无缓存或缓存的计数不是当前线程
+                    cachedHoldCounter = rh = readHolds.get(); // 获取线程本地缓存
+                else if (rh.count == 0)  // 有缓存且当前线程第一次获取锁，则初始化线程(锁计数)本地缓存
+                    readHolds.set(rh);
+                rh.count++; // 当前线程持有读锁数加1
+            }
+            return 1;
+        }
+        return fullTryAcquireShared(current); // 自旋获取读锁，用于应对首次尝试CAS未命中和重入读锁的情况
+    }
+
+    protected final boolean tryReleaseShared(int unused) {
+        Thread current = Thread.currentThread();
+        if (firstReader == current) { // 当前线程是第一个获取读锁的线程
+            // assert firstReaderHoldCount > 0;
+            if (firstReaderHoldCount == 1) // 线程仅持有1个读锁，释放后即无第一个读线程
+                firstReader = null;
+            else
+                firstReaderHoldCount--; 
+        } else {
+            HoldCounter rh = cachedHoldCounter;
+            if (rh == null || rh.tid != getThreadId(current))
+                rh = readHolds.get();
+            int count = rh.count;
+            if (count <= 1) { // 只获取一次读锁，则直接移除，
+                readHolds.remove();
+                if (count <= 0)
+                    throw unmatchedUnlockException();
+            }
+            --rh.count; // 减少缓存计数信息
+        }
+        for (;;) { // 自旋释放读锁
+            int c = getState();
+            int nextc = c - SHARED_UNIT;
+            if (compareAndSetState(c, nextc))
+                // Releasing the read lock has no effect on readers,
+                // but it may allow waiting writers to proceed if
+                // both read and write locks are now free.
+                return nextc == 0;
+        }
+    }
+```
+
+## java中的阻塞队列
+
+插入和移除操作的4种处理方式：
+
+方法/处理方式 | 抛出异常 | 返回特殊值 | 一直阻塞 | 超时退出
+---|---|---|---|----
+插入方法 | `add(e)` | `offer(e)` | `put(e)` | `offer(e, time, unit)`
+移除方法 | `remove()` | `poll()` | `take()` | `poll(time, unit)`
+检查方法 | `element()` | `peek()` | 不可用 | 不可用
+
+提供了哪些阻塞队列？
+- `ArrayBlockingQueue`：由数组结构组成的有界阻塞队列。
+- `LinkedBlockingQueue`：由链表结构组成的有界阻塞队列。
+- `PriorityBlockingQueue`：支持优先级排序的无界阻塞队列。
+- `DelayQueue`：使用优先级队列实现的无界阻塞延时队列。（延迟队列中的元素到了延迟时间则可以从中取出，否则无法取出）
+- `SynchronousQueue`：不存储元素的阻塞队列。
+- `LinkedTransferQueue`：由链表结构组成的无界阻塞队列。
+- `LinkedBlockingDeque`：由链表结构组成的双向阻塞队列。
+
+## java中的原子操作类
+
+- `AtomicBoolean`：原子更新布尔类型。
+- `AtomicInteger`：原子更新整型。
+- `AtomicLong`：原子更新长整型。
+- `AtomicIntegerArray`：原子更新整型数组里的元素。（对内部的数组元素(将传入数组复制一份)进行修改，不会影响传入的数组）
+- `AtomicLongArray`：原子更新长整型数组里的元素。
+- `AtomicReferenceArray`：原子更新引用类型数组里的元素。
+- `AtomicReference`：原子更新引用类型。
+- `AtomicIntegerFieldUpdater`：原子更新整型字段的更新器。
+- `AtomicLongFieldUpdater`：原子更新长整型字段的更新器。
+- `AtomicReferenceFieldUpdater`：原子更新引用类型字段的更新器。
+- `AtomicMarkableReference`：原子更新带有boolean标记位的引用类型。
+- `AtomicStampedReference`：原子更新带有版本号的引用类型。
+
+## java中的并发工具类
+
+- `CountDownLatch`（倒计数器）：一个或多个线程等待其他线程完成操作。{% label info@只能使用一次 %}
+- `CyclicBarrier`（循环屏障）：让一组线程到达一个屏障（也可以叫同步点）时被阻塞，直到最后一个线程到达屏障时，屏障才会开门，所有被屏障拦截的线程才会继续运行。{% label info@可以使用reset()方法重置，多次使用 %}
+- `Semaphore`（信号量）：控制同时访问特定资源的线程数量。
+- `Exchanger`（交换者）：用于进行线程间的数据交换。它提供一个同步点，在这个同步点，两个线程可以交换彼此的数据。
+- Guava `RateLimiter`（限流器）：使用漏桶算法（利用一个缓存区，请求进入系统时，无论请求的速率如何都先保存在缓存区内，然后以固定的流速流出缓存区进行处理）或令牌桶算法（桶中存放的不再是请求，而是令牌，处理程序只有拿到令牌后才能对请求进行处理，无令牌时程序要么等待令牌，要么丢弃请求，为了限制流速，会在每个单位时间产生一定量的令牌放入桶中）对请求进行限流。
 
 
 ----
+* *《Java并发编程的艺术》*
 * [Synchronization](https://wiki.openjdk.java.net/display/HotSpot/Synchronization)
 * [Java Synchronised机制](https://blog.dreamtobe.cn/2015/11/13/java_synchronized/)
