@@ -784,14 +784,6 @@ public ThreadPoolExecutor(int corePoolSize, // 核心线程数
 - `shutdown()`：只是将线程池的状态设置成`SHUTDOWN`状态，然后中断所有没有正在执行任务的线程。
 - `shutdownNow()`：首先将线程池的状态设置成`STOP`，然后尝试停止所有的正在执行或暂停任务的线程，并返回等待执行任务的列表。
 
-#### Executors中的方法
-
-- `FixedThreadPool`(容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`)：适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场景，它适用于负载比较重的服务器。
-- `SingleThreadExecutor`(容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`)：适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多个线程是活动的应用场景。
-- `CachedThreadPool`(核心线程数为`0`,最大线程数为`Integer.MAX_VALUE`，没有容量的`SynchronousQueue`)：是大小无界的线程池，适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器。
-- `ScheduledThreadPoolExecutor`(`DelayQueue`无界队列)：适用于需要多个后台线程执行周期任务，同时为了满足资源管理的需求而需要限制后台线程的数量的应用场景。
-- `SingleThreadScheduledExecutor`：适用于需要单个后台线程执行周期任务，同时需要保证顺序地执行各个任务的应用场景。
-
 ### 合理配置线程池
 
 线程数配置：
@@ -837,6 +829,18 @@ public ThreadPoolExecutor(int corePoolSize, // 核心线程数
 
 通过继承线程池来自定义线程池，重写线程池的`beforeExecute`、`afterExecute`和`terminated`方法，在任务执行前、执行后和线程池关闭前执行一些代码来进行监控。
 
+## Executor框架
+
+- `FixedThreadPool`：容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`。由于使用无界队列，因此`maximumPoolSize`和`keepAliveTime`将是无效参数。运行中的FixedThreadPool（未执行方法`shutdown()`或`shutdownNow()`）也不会拒绝任务。这意味着如果主线程提交任务的速度高于池中线程处理任务的速度时，它会不断积压任务。<u>极端情况下，会因为积压过多的任务而耗尽内存资源。</u>
+> 适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场景，它适用于负载比较重的服务器。
+- `SingleThreadExecutor`：`corePoolSize`和`maximumPoolSize`被设置为`1`，容量为`Integer.MAX_VALUE`的`LinkedBlockingQueue`。使用无界队列带来的影响与上述相同。
+> 适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多个线程是活动的应用场景。
+- `CachedThreadPool`：核心线程数为`0`,最大线程数为`Integer.MAX_VALUE`，`keepAliveTime`设置为`60L`，没有容量的`SynchronousQueue`，是大小无界的线程池，这意味着如果主线程提交任务的速度高于池中线程处理任务的速度时，它会不断创建新线程。<u>极端情况下，会因为创建过多线程而耗尽CPU和内存资源。</u>
+> 适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器。
+- `ScheduledThreadPoolExecutor`：`DelayedQueue`无界队列，其内保存的`ScheduledFutureTask`任务会先按照任务的执行时间升序排列，其次按照任务提交的序列号升序排列。
+> 适用于需要多个后台线程执行周期任务，同时为了满足资源管理的需求而需要限制后台线程的数量的应用场景。
+- `SingleThreadScheduledExecutor`：只有一个核心线程的`ScheduledThreadPoolExecutor`。
+> 适用于需要单个后台线程执行周期任务，同时需要保证顺序地执行各个任务的应用场景。
 
 ----
 * *《Java并发编程的艺术》*
