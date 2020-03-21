@@ -600,13 +600,6 @@
 <li><code>shutdown()</code>：只是将线程池的状态设置成<code>SHUTDOWN</code>状态，然后中断所有没有正在执行任务的线程。</li>
 <li><code>shutdownNow()</code>：首先将线程池的状态设置成<code>STOP</code>，然后尝试停止所有的正在执行或暂停任务的线程，并返回等待执行任务的列表。</li>
 </ul>
-<h4 id="Executors中的方法"><a href="#Executors中的方法" class="headerlink" title="Executors中的方法"></a>Executors中的方法</h4><ul>
-<li><code>FixedThreadPool</code>(容量为<code>Integer.MAX_VALUE</code>的<code>LinkedBlockingQueue</code>)：适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场景，它适用于负载比较重的服务器。</li>
-<li><code>SingleThreadExecutor</code>(容量为<code>Integer.MAX_VALUE</code>的<code>LinkedBlockingQueue</code>)：适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多个线程是活动的应用场景。</li>
-<li><code>CachedThreadPool</code>(核心线程数为<code>0</code>,最大线程数为<code>Integer.MAX_VALUE</code>，没有容量的<code>SynchronousQueue</code>)：是大小无界的线程池，适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器。</li>
-<li><code>ScheduledThreadPoolExecutor</code>(<code>DelayQueue</code>无界队列)：适用于需要多个后台线程执行周期任务，同时为了满足资源管理的需求而需要限制后台线程的数量的应用场景。</li>
-<li><code>SingleThreadScheduledExecutor</code>：适用于需要单个后台线程执行周期任务，同时需要保证顺序地执行各个任务的应用场景。</li>
-</ul>
 <h3 id="合理配置线程池"><a href="#合理配置线程池" class="headerlink" title="合理配置线程池"></a>合理配置线程池</h3><p>线程数配置：</p>
 <ul>
 <li><p>按任务的性质拆分：<br><u>CPU密集型任务</u>应配置尽可能小的线程，如配置<code>Ncpu+1</code>个线程的线程池。由于<u>IO密集型任务</u>线程并不是一直在执行任务，则应配置尽可能多的线程，如<code>2*Ncpu</code>。<u>混合型的任务</u>，如果可以拆分，将其拆分成一个CPU密集型任务和一个IO密集型任务，只要这两个任务执行的时间相差不是太大，那么分解后执行的吞吐量将高于串行执行的吞吐量。如果这两个任务执行时间相差太大，则没必要进行分解。可以通过<code>Runtime.getRuntime().availableProcessors()</code>方法获得当前设备的CPU个数。</p>
@@ -642,6 +635,28 @@
 <li><code>getActiveCount</code>：获取活动的线程数量。</li>
 </ul>
 <p>通过继承线程池来自定义线程池，重写线程池的<code>beforeExecute</code>、<code>afterExecute</code>和<code>terminated</code>方法，在任务执行前、执行后和线程池关闭前执行一些代码来进行监控。</p>
+<h2 id="Executor框架"><a href="#Executor框架" class="headerlink" title="Executor框架"></a>Executor框架</h2><ul>
+<li><code>FixedThreadPool</code>：容量为<code>Integer.MAX_VALUE</code>的<code>LinkedBlockingQueue</code>。由于使用无界队列，因此<code>maximumPoolSize</code>和<code>keepAliveTime</code>将是无效参数。运行中的FixedThreadPool（未执行方法<code>shutdown()</code>或<code>shutdownNow()</code>）也不会拒绝任务。这意味着如果主线程提交任务的速度高于池中线程处理任务的速度时，它会不断积压任务。<u>极端情况下，会因为积压过多的任务而耗尽内存资源。</u><blockquote>
+<p>适用于为了满足资源管理的需求，而需要限制当前线程数量的应用场景，它适用于负载比较重的服务器。</p>
+</blockquote>
+</li>
+<li><code>SingleThreadExecutor</code>：<code>corePoolSize</code>和<code>maximumPoolSize</code>被设置为<code>1</code>，容量为<code>Integer.MAX_VALUE</code>的<code>LinkedBlockingQueue</code>。使用无界队列带来的影响与上述相同。<blockquote>
+<p>适用于需要保证顺序地执行各个任务；并且在任意时间点，不会有多个线程是活动的应用场景。</p>
+</blockquote>
+</li>
+<li><code>CachedThreadPool</code>：核心线程数为<code>0</code>,最大线程数为<code>Integer.MAX_VALUE</code>，<code>keepAliveTime</code>设置为<code>60L</code>，没有容量的<code>SynchronousQueue</code>，是大小无界的线程池，这意味着如果主线程提交任务的速度高于池中线程处理任务的速度时，它会不断创建新线程。<u>极端情况下，会因为创建过多线程而耗尽CPU和内存资源。</u><blockquote>
+<p>适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器。</p>
+</blockquote>
+</li>
+<li><code>ScheduledThreadPoolExecutor</code>：<code>DelayedQueue</code>无界队列，其内保存的<code>ScheduledFutureTask</code>任务会先按照任务的执行时间升序排列，其次按照任务提交的序列号升序排列。<blockquote>
+<p>适用于需要多个后台线程执行周期任务，同时为了满足资源管理的需求而需要限制后台线程的数量的应用场景。</p>
+</blockquote>
+</li>
+<li><code>SingleThreadScheduledExecutor</code>：只有一个核心线程的<code>ScheduledThreadPoolExecutor</code>。<blockquote>
+<p>适用于需要单个后台线程执行周期任务，同时需要保证顺序地执行各个任务的应用场景。</p>
+</blockquote>
+</li>
+</ul>
 <hr>
 <ul>
 <li><em>《Java并发编程的艺术》</em></li>
