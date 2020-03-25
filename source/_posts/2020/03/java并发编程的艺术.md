@@ -268,7 +268,7 @@ happens-before定义：
 
 JMM对程序员的{% label danger@承诺 %}：如果一个操作happens-before另一个操作，那么第一个操作的执行结果将对第二个操作可见，而且第一个操作的执行顺序排在第二个操作之前。
 
-JMM对编译器和处理器重排序的约束原则：两个操作之间存在happens-before关系，<u>并不意味着Java平台的具体实现必须要按照happens-before关系指定的顺序来执行</u>。如果重排序之后的执行结果，与按happens-before关系来执行的结果一致，那么这种重排序并不非法（即JMM允许这种重排序）。
+JMM对编译器和处理器重排序的{% label danger@约束原则%}：两个操作之间存在happens-before关系，<u>并不意味着Java平台的具体实现必须要按照happens-before关系指定的顺序来执行</u>。如果重排序之后的执行结果，与按happens-before关系来执行的结果一致，那么这种重排序并不非法（即JMM允许这种重排序）。
 
 happens-before规则：
 
@@ -338,7 +338,7 @@ threadA执行`threadB.join()`：当前线程A等待线程B终止之后才从`thr
 
 ```java
     synchronized (对象) {
-        while (条件不满足) {
+        while (条件不满足) { // 防止虚假唤醒（线程由于某些特殊情况，不是被notify或者notifyAll所唤醒）
             对象.wait();
         }
         对应的处理逻辑
@@ -380,7 +380,7 @@ synchronized | [Lock](https://docs.oracle.com/javase/7/docs/api/java/util/concur
 关键字，隐式获取/释放锁 | 接口，显式获取/释放锁
 代码简单，被大多程序员广泛使用，默认推荐　| 代码稍复杂，在try块外获取锁，在finally块中释放锁，迫于性能调优时再用
  - | 可尝试非阻塞获取锁（线程尝试获取锁，若锁未被其他线程持有，则成功获取并持有锁）
--  | 可中断获取锁（获取到锁的线程能够响应中断，当该线程被中断时，中断异常将被抛出，同时锁释放）
+ - | 可中断获取锁（获取到锁的线程能够响应中断，当该线程被中断时，中断异常将被抛出，同时锁释放）
  - | 可超时获取锁（在指定的截止时间之前获取锁，若超时仍无法获取锁，则返回）
 
 
@@ -775,8 +775,9 @@ public ThreadPoolExecutor(int corePoolSize, // 核心线程数
 `RejectedExecutionHandler`（饱和策略）：
 - `AbortPolicy`：直接抛出异常。
 - `CallerRunsPolicy`：只用调用者所在线程来运行任务。
-- `DiscardOldestPolicy`：丢弃队列里最老的一个任务，并执行当前任务。
-- `DiscardPolicy`：不处理，丢弃掉。
+- `DiscardOldestPolicy`：丢弃下一个将被执行的任务，然后尝试重新提交新的任务。
+> {% label warning@如果工作队列是一个优先队列，那么“抛弃最旧的”策略将导致抛弃优先级最高的任务，因此最好不要将“抛弃最旧的”饱和策略和优先级队列放在一起使用。%}
+- `DiscardPolicy`：不处理悄悄丢弃掉。
 
 #### 向线程池提交任务
 - `execute()`：用于提交不需要返回值的任务，所以无法判断任务是否被线程池执行成功。
