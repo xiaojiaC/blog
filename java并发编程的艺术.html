@@ -41,7 +41,7 @@
 <meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/aqs-doAcquireNanos.png">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E8%89%BA%E6%9C%AF/thread-pool-processing.png">
 <meta property="article:published_time" content="2020-03-14T11:55:32.000Z">
-<meta property="article:modified_time" content="2020-03-24T15:11:57.301Z">
+<meta property="article:modified_time" content="2020-03-25T14:55:49.643Z">
 <meta property="article:author" content="xiaojiaC">
 <meta property="article:tag" content="java">
 <meta property="article:tag" content="concurrency">
@@ -869,8 +869,10 @@
 <ul>
 <li><code>AbortPolicy</code>：直接抛出异常。</li>
 <li><code>CallerRunsPolicy</code>：只用调用者所在线程来运行任务。</li>
-<li><code>DiscardOldestPolicy</code>：丢弃队列里最老的一个任务，并执行当前任务。</li>
-<li><code>DiscardPolicy</code>：不处理，丢弃掉。</li>
+<li><code>DiscardOldestPolicy</code>：丢弃下一个将被执行的任务，然后尝试重新提交新的任务。<blockquote>
+<span class="label warning">如果工作队列是一个优先队列，那么“抛弃最旧的”策略将导致抛弃优先级最高的任务，因此最好不要将“抛弃最旧的”饱和策略和优先级队列放在一起使用。</span></blockquote>
+</li>
+<li><code>DiscardPolicy</code>：不处理悄悄丢弃掉。</li>
 </ul>
 <h4 id="向线程池提交任务"><a href="#向线程池提交任务" class="headerlink" title="向线程池提交任务"></a>向线程池提交任务</h4><ul>
 <li><code>execute()</code>：用于提交不需要返回值的任务，所以无法判断任务是否被线程池执行成功。</li>
