@@ -379,7 +379,7 @@
 </ul>
 <p>不仅每个计算结果都应该被使用，而且还应该是不可预测的，否则，一个智能的动态优化编译器将用预先计算的结果来代替计算过程。</p>
 <h3 id="其他的测试方法"><a href="#其他的测试方法" class="headerlink" title="其他的测试方法"></a>其他的测试方法</h3><p>质量保证的目标应该是<span class="label primary">在给定的测试资源下实现最高的可信度。</span></p>
-<p>代码审查、静态分析工具（如FindBugs）、面向切面的测试技术，分析与监测工具（如JMX的<code>ThreadInfo</code>）。</p>
+<p>代码审查、静态分析工具（如FindBugs）、面向切面的测试技术、分析与监测工具（如JMX的<code>ThreadInfo</code>）。</p>
 <hr>
 <ul>
 <li><em>《Java并发编程实战》</em></li>
