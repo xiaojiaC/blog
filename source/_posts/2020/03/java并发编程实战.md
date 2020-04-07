@@ -633,7 +633,7 @@ Amdahl定律告诉我们：{% label primary@程序的可伸缩性取决于所有
 
 质量保证的目标应该是{% label primary@在给定的测试资源下实现最高的可信度。%}
 
-代码审查、静态分析工具（如FindBugs）、面向切面的测试技术，分析与监测工具（如JMX的`ThreadInfo`）。
+代码审查、静态分析工具（如FindBugs）、面向切面的测试技术、分析与监测工具（如JMX的`ThreadInfo`）。
 
 ----
 * *《Java并发编程实战》*
