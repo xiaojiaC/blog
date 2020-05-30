@@ -1,6 +1,314 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Hadoop集群搭建</title>
+    <url>/blog/Hadoop%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA.html</url>
+    <content><![CDATA[<h2 id="Hadoop集群搭建"><a href="#Hadoop集群搭建" class="headerlink" title="Hadoop集群搭建"></a>Hadoop集群搭建</h2><h3 id="虚拟机准备"><a href="#虚拟机准备" class="headerlink" title="虚拟机准备"></a>虚拟机准备</h3><ol>
+<li>安装<a href="https://download.virtualbox.org/virtualbox/6.1.8/VirtualBox-6.1.8-137981-Win.exe" target="_blank" rel="noopener">Visual Box</a></li>
+<li>准备<a href="http://isoredirect.centos.org/centos/7/isos/x86_64/" target="_blank" rel="noopener">CentOS 7镜像文件</a></li>
+<li><a href="https://jingyan.baidu.com/article/4dc4084868a1e4c8d946f133.html" target="_blank" rel="noopener">创建虚拟机</a></li>
+<li><a href="https://www.linuxidc.com/Linux/2018-04/151924.htm" target="_blank" rel="noopener">设置虚拟机固定IP</a></li>
+</ol>
+<a id="more"></a>
+
+<pre><code><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-enp0s3</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPADDR=<span class="string">"192.168.56.101"</span></span><br></pre></td></tr></table></figure></code></pre><ol start="5">
+<li><p>设置虚拟机主机名</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sysconfig/network</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">NETWORKING=yes</span><br><span class="line">HOSTNAME=linux101</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置虚拟机域名映射</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hosts</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">192.168.56.101 linux101</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>复制虚拟机：设置名称，选择为所有网卡重新生成MAC地址，完全复制</p>
+</li>
+<li><p>按上述1~6配置准备linux102、linux103虚拟机</p>
+</li>
+<li><p>配置Windows本机域名映射</p>
+<blockquote>
+<p>便于之后访问集群Web UI</p>
+</blockquote>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">code C:\Windows\System32\drivers\etc\hosts</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">192.168.56.101 linux101</span><br><span class="line">192.168.56.102 linux102</span><br><span class="line">192.168.56.103 linux103</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h3 id="前置工作"><a href="#前置工作" class="headerlink" title="前置工作"></a>前置工作</h3><ol>
+<li><p>创建hadoop用户</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo useradd -m hadoop -s /bin/bash</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>修改hadoop用户密码</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo passwd hadoop</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置hadoop用户组</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo usermod -a -G hadoop hadoop</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>为hadoop用户增加管理员权限</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim sudoers</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">hadoop ALL=(ALL) ALL</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置机器免密登录</p>
+<blockquote>
+<p>便于在集群间执行管理脚本</p>
+</blockquote>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa -P <span class="string">''</span> -f ~/.ssh/id_rsa <span class="comment"># 生成rsa密钥</span></span><br><span class="line">cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys <span class="comment"># 加入授权</span></span><br><span class="line">chmod 0600 ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh hadoop@linux101 <span class="comment"># 测试免密登录</span></span><br></pre></td></tr></table></figure>
+
+<p> 仍需要密码登陆问题解决:</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/ssh/sshd_config</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">PermitRootLogin yes <span class="comment"># 禁用root账户登录</span></span><br><span class="line"></span><br><span class="line">StrictModes no <span class="comment"># 是否让sshd去检查用户家目录或相关档案的权限数据</span></span><br><span class="line"></span><br><span class="line">PubkeyAuthentication yes <span class="comment"># 是否允许用户自行使用成对的密钥系统进行登入行为</span></span><br><span class="line">AuthorizedKeysFile  .ssh/authorized_keys</span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"></span><br><span class="line">service sshd restart <span class="comment"># 重启sshd服务</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>关闭防火墙</p>
+<blockquote>
+<p>为了访问集群Web UI和集群各结点互联互通（eg: NameNode和DataNode, …）</p>
+</blockquote>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld.service   <span class="comment"># 停止防火墙</span></span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service  <span class="comment"># 禁止防火墙开机启动</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>下载<a href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html" target="_blank" rel="noopener">jdk8</a>并解压</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zvxf jdk-8u251-linux-x64.tar.gz -C ~/module</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置环境变量</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 注意：这里由于虚拟机资源紧张我暂不使用hadoop用户</span></span><br><span class="line">sudo vim /etc/profile</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"><span class="comment"># JAVA</span></span><br><span class="line"><span class="built_in">export</span> JAVA_HOME=/home/bob/module/jdk1.8.0_251</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$JAVA_HOME</span>/bin</span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>准备辅助脚本</p>
+<ul>
+<li><p>集群多节点互传差异文件</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取输入参数个数，如果没有参数直接退出</span></span><br><span class="line">args_count=<span class="variable">$#</span></span><br><span class="line"><span class="keyword">if</span> ((args_count==0)); <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> no args;</span><br><span class="line">  <span class="built_in">exit</span>;</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取待分发文件名称</span></span><br><span class="line">arg1=<span class="variable">$1</span></span><br><span class="line">fname=`basename <span class="variable">$arg1</span>`</span><br><span class="line"><span class="built_in">echo</span> fname=<span class="variable">$fname</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取上级目录到绝对路径</span></span><br><span class="line">pdir=`<span class="built_in">cd</span> -P $(dirname <span class="variable">$arg1</span>); <span class="built_in">pwd</span>`</span><br><span class="line"><span class="built_in">echo</span> pdir=<span class="variable">$pdir</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取当前用户名称</span></span><br><span class="line">user=`whoami`</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始分发</span></span><br><span class="line"><span class="keyword">for</span> ((host=101; host&lt;104; host++)); <span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> --------------------linux<span class="variable">$host</span>--------------------</span><br><span class="line">  rsync -rvl <span class="variable">$pdir</span>/<span class="variable">$fname</span> <span class="variable">$user</span>@linux<span class="variable">$host</span>:<span class="variable">$pdir</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>查看集群各节点java进程</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取当前用户名称</span></span><br><span class="line">user=`whoami`</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> ((host=101; host&lt;104; host++)); <span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> --------------------linux<span class="variable">$host</span>--------------------</span><br><span class="line">  ssh <span class="variable">$user</span>@linux<span class="variable">$host</span> <span class="string">"<span class="variable">$JAVA_HOME</span>/bin/jps"</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="集群配置"><a href="#集群配置" class="headerlink" title="集群配置"></a>集群配置</h3><ul>
+<li><p>集群规划</p>
+<table>
+<thead>
+<tr>
+<th>linux101</th>
+<th>linux102</th>
+<th>linux103</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NameNode</td>
+<td>SecondaryNameNode</td>
+<td>-</td>
+</tr>
+<tr>
+<td>DataNode</td>
+<td>DataNode</td>
+<td>DataNode</td>
+</tr>
+<tr>
+<td>-</td>
+<td>-</td>
+<td>ResourceManager</td>
+</tr>
+<tr>
+<td>NodeManager</td>
+<td>NodeManager</td>
+<td>NodeManager</td>
+</tr>
+<tr>
+<td>-</td>
+<td>JobHistoryServer</td>
+<td>-</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<ol>
+<li><p>下载<a href="https://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz" target="_blank" rel="noopener">hadoop-3.2.1</a>并解压</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zvxf hadoop-3.2.1/hadoop-3.2.1.tar.gz -C ~/module</span><br></pre></td></tr></table></figure>
+
+<p> 设置环境变量:</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"><span class="comment"># Hadoop</span></span><br><span class="line"><span class="built_in">export</span> HADOOP_HOME=/home/bob/module/hadoop-3.2.1</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$HADOOP_HOME</span>/bin:<span class="variable">$HADOOP_HOME</span>/sbin</span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置<code>hadoop-env.sh</code></p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/home/bob/module/jdk1.8.0_251</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/core-default.xml" target="_blank" rel="noopener">配置</a><code>core-site.xml</code></p>
+ <figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://linux101:9000<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/bob/module/hadoop-3.2.1/data/tmp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/hdfs-default.xml" target="_blank" rel="noopener">配置</a><code>hdfs-site.xml</code></p>
+ <figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.replication<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>3<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.name.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/bob/module/hadoop-3.2.1/data/dfs/name<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.datanode.data.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/bob/module/hadoop-3.2.1/data/dfs/data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.secondary.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>linux102:9868<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://hadoop.apache.org/docs/stable/hadoop-yarn/hadoop-yarn-common/yarn-default.xml" target="_blank" rel="noopener">配置</a><code>yarn-site.xml</code></p>
+ <figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.resourcemanager.hostname<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>linux103<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.aux-services<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>mapreduce_shuffle<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.env-whitelist<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.log-aggregation-enable<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.log-aggregation.retain-seconds<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>7200<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.log.server.url<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>http://linux102:19888/jobhistory/logs<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/mapred-default.xml" target="_blank" rel="noopener">配置</a><code>mapred-site.xml</code></p>
+ <figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.framework.name<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>yarn<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.application.classpath<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>linux102:10020<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.webapp.address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>linux102:19888<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置<code>workers</code>工作节点</p>
+<blockquote>
+<p>供集群启动、停止等管理脚本使用（eg: start-dfs.sh, …）</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">linux101</span><br><span class="line">linux102</span><br><span class="line">linux103</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将配置好的hadoop目录分发给其他节点</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync ~/module/hadoop-3.2.1</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h3 id="集群启动"><a href="#集群启动" class="headerlink" title="集群启动"></a>集群启动</h3><ol>
+<li><p>格式化dfs文件系统</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hdfs namenode -format</span><br></pre></td></tr></table></figure>
+
+<p> 注意：若二次格式化，则需要先删除各节点之前的<code>data</code>和<code>logs</code>目录，再启动dfs。</p>
+</li>
+<li><p>启动<code>NameNode</code>和<code>DataNode</code>守护进程</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<p> <code>xjps</code>确认进程存活，访问NameNode Web UI：<a href="http://linux101:9870/" target="_blank" rel="noopener">http://linux101:9870/</a></p>
+<p> 测试：</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hdfs dfs -mkdir -p /user/bob/wc/input    <span class="comment"># 创建wordcount输入文件夹</span></span><br><span class="line">hdfs dfs -put wc.iput /user/bob/wc/input <span class="comment"># 将准备好的单词文件放入输入文件夹</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动<code>ResourceManager</code>和<code>NodeManager</code>守护进程</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">start-yarn.sh</span><br></pre></td></tr></table></figure>
+
+<p> <code>xjps</code>确认进程存活，访问ResourceManager Web UI：<a href="http://linux103:8088/" target="_blank" rel="noopener">http://linux103:8088/</a></p>
+</li>
+<li><p>启动作业历史记录服务器</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mr-jobhistory-daemon.sh start historyserver</span><br></pre></td></tr></table></figure>
+
+<p> <code>xjps</code>确认进程存活，访问HistoryServer Web UI：<a href="http://linux102:19888/" target="_blank" rel="noopener">http://linux102:19888/</a></p>
+</li>
+<li><p>运行MapReduce任务</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-3.2.1.jar wordcount /user/bob/wc/input /user/bob/wc/output <span class="comment"># 执行wordcount</span></span><br><span class="line"></span><br><span class="line">hdfs dfs -cat output/p* <span class="comment"># 查看运行结果</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>停止集群</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">stop-dfs.sh <span class="comment"># linux101上执行</span></span><br><span class="line">stop-yarn.sh <span class="comment"># linux103上执行</span></span><br><span class="line">mr-jobhistory-daemon.sh stop historyserver <span class="comment"># linux102上执行</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：以上启动/停止均需在对应节点执行，eg: NameNode-&gt;linux101 JobHistory-&gt;linux102 ResourceManager-&gt;linux103 </p>
+</blockquote>
+</li>
+</ol>
+<h2 id="Spark-On-Yarn"><a href="#Spark-On-Yarn" class="headerlink" title="Spark On Yarn"></a>Spark On Yarn</h2><ul>
+<li><p>集群规划</p>
+<table>
+<thead>
+<tr>
+<th>linux101</th>
+<th>linux102</th>
+<th>linux103</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Master</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Worker</td>
+<td>Worker</td>
+<td>Worker</td>
+</tr>
+<tr>
+<td>-</td>
+<td>HistoryServer</td>
+<td>-</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<ol>
+<li><p>下载<a href="https://www.apache.org/dyn/closer.lua/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz" target="_blank" rel="noopener">spark-2.4.5</a>并解压</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zvxf spark-2.4.5-bin-hadoop2.7.tgz -C ~/module</span><br><span class="line">mv spark-2.4.5-bin-hadoop2.7 spark-2.4.5</span><br></pre></td></tr></table></figure>
+
+<p> 设置环境变量:</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"><span class="comment"># Spark</span></span><br><span class="line"><span class="built_in">export</span> SPARK_HOME=/home/bob/module/spark-2.4.5</span><br><span class="line"><span class="comment">#export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin</span></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://spark.apache.org/docs/2.4.5/running-on-yarn.html" target="_blank" rel="noopener">配置</a><code>spark-env.sh</code></p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mv spark-env.sh.template spark-env.sh</span><br><span class="line">vim spark-env.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">HADOOP_CONF_DIR=/home/bob/module/hadoop-3.2.1/etc/hadoop</span><br><span class="line">SPARK_MASTER_HOST=linux101</span><br><span class="line">SPARK_MASTER_PORT=7077</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置<code>slaves</code></p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mv slaves.template slaves</span><br><span class="line">vim slaves</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">linux101</span><br><span class="line">linux102</span><br><span class="line">linux103</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将配置好的spark目录分发给其他节点</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync ~/module/spark-2.4.5</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动spark集群</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-all.sh</span><br></pre></td></tr></table></figure>
+
+<p> <code>xjps</code>确认spark进程存活，访问Spark Web UI：<a href="http://linux101:19888/" target="_blank" rel="noopener">http://linux101:19888/</a></p>
+</li>
+<li><p>配置作业历史服务器</p>
+<blockquote>
+<p>便于在Hadoop Web UI中查看Spark Job History</p>
+</blockquote>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mv spark-default.conf.template spark-default.conf</span><br><span class="line">vim spark-default.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">spark.eventLog.enabled           <span class="literal">true</span>  <span class="comment"># 记录事件日志</span></span><br><span class="line">spark.eventLog.dir               hdfs://linux101:9000/spark/jobhistory <span class="comment"># 事件日志保存路径（需预先在hdfs创建）</span></span><br><span class="line">spark.eventLog.compress          <span class="literal">true</span>  <span class="comment"># 压缩事件日志</span></span><br><span class="line">spark.yarn.historyServer.address linux102:18080 <span class="comment"># Hadoop Web UI 'TarckingUI'指向的Spark HistoryServer的地址</span></span><br></pre></td></tr></table></figure>
+
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim spark-env.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"><span class="comment"># Spark HistoryServer的访问端口，HistoryServer显示的最大应用程序数量，HistoryServer日志存放目录</span></span><br><span class="line">SPARK_HISTORY_OPTS=<span class="string">"-Dspark.history.ui.port=18080</span></span><br><span class="line"><span class="string">-Dspark.history.retainedApplications=3</span></span><br><span class="line"><span class="string">-Dspark.history.fs.logDirectory=hdfs://linux101:9000/spark/jobhistory"</span> <span class="comment">#</span></span><br></pre></td></tr></table></figure>
+
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 分发配置到其他节点</span></span><br><span class="line">xsync spark-default.conf</span><br><span class="line">xsync spark-env.sh</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动作业历史服务器</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-history-server.sh <span class="comment"># 启动Spark HistoryServer</span></span><br></pre></td></tr></table></figure>
+
+<p> <code>xjps</code>确认进程存活</p>
+</li>
+<li><p>执行测试</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bin/spark-submit --class org.apache.spark.examples.SparkPi \</span><br><span class="line">    --master yarn \</span><br><span class="line">    --deploy-mode cluster \</span><br><span class="line">    --driver-memory 2g \</span><br><span class="line">    --executor-memory 1g \</span><br><span class="line">    --executor-cores 1 \</span><br><span class="line">    examples/jars/spark-examples*.jar \</span><br><span class="line">    10</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h2 id="Flink-On-Yarn"><a href="#Flink-On-Yarn" class="headerlink" title="Flink On Yarn"></a>Flink On Yarn</h2><ol>
+<li><p>下载<a href="https://www.apache.org/dyn/closer.lua/flink/flink-1.9.3/flink-1.9.3-bin-scala_2.12.tgz" target="_blank" rel="noopener">flink-1.9.3</a>并解压</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zvxf flink-1.9.3-bin-scala_2.12.tgz -C ~/module</span><br><span class="line">mv flink-1.9.3-bin-scala_2.12 flink-1.9.3</span><br></pre></td></tr></table></figure>
+
+<p> 设置环境变量（可选）:</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"><span class="comment"># Flink</span></span><br><span class="line"><span class="built_in">export</span> FLINK_HOME=/home/bob/module/flink-1.9.3</span><br><span class="line"><span class="comment">#export PATH=$PATH:$FLINK_HOME/bin</span></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>下载<a href="https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar" target="_blank" rel="noopener">hadoop</a>支持组件</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mv flink-shaded-hadoop-2-uber-2.8.3-10.0.jar ~/module/flink-1.9.3/lib</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置<code>yarn-site.xml</code></p>
+<blockquote>
+<p>提交应用程序的最大尝试次数</p>
+</blockquote>
+ <figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.resourcemanager.am.max-attempts<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>4<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.9/zh/ops/jobmanager_high_availability.html" target="_blank" rel="noopener">配置</a><code>flink-conf.yaml</code></p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim conf/flink-conf.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">high-availability: zookeeper</span><br><span class="line">high-availability.storageDir: hdfs:///linux101:9000/flink/ha/</span><br><span class="line">high-availability.zookeeper.quorum: linux101:2181,linux102:2181,linux103:2181</span><br><span class="line">high-availability.zookeeper.path.root: /flink</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置ZooKeeper服务器</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim conf/zoo.cfg</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------</span></span><br><span class="line">server.1=linux101:2888:3888</span><br><span class="line">server.2=linux102:2888:3888</span><br><span class="line">server.3=linux103:2888:3888</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将配置好的flink目录分发给其他节点</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync ~/module/flink-1.9.3</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动ZooKeeper仲裁</p>
+ <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">./bin/start-zookeeper-quorum.sh</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动Flink Yarn Session</p>
+<ul>
+<li><p>分离模式</p>
+  <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">./bin/yarn-session.sh -n 3 -s 2 -nm flink-yarn-detach -d <span class="comment"># 后台启动</span></span><br><span class="line">./bin/flink run ./examples/batch/WordCount.jar <span class="comment"># 运行任务</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>客户端模式</p>
+  <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">./bin/flink run -m yarn-cluster -yn 3 -ys 2 -ynm flink-yarn-client ./examples/batch/WordCount.jar <span class="comment"># 启动运行</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>测试HA</p>
+<p> <code>xjps</code>查看YarnSessionClusterEntrypoint进程所在节点，到对应机器上kill掉该进程id</p>
+<p> 访问 <a href="http://linux103:8088/" target="_blank" rel="noopener">http://linux103:8088/</a> 点击查看<code>flink-yarn-detach</code>应用，会发现多出现一次appattempt，在Flink UI的JobManager选项卡下也可查看，再次提交flink job仍可运行。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>BigData</category>
+      </categories>
+      <tags>
+        <tag>hadoop</tag>
+        <tag>hdfs</tag>
+        <tag>yarn</tag>
+        <tag>mapreduce</tag>
+        <tag>spark</tag>
+        <tag>flink</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java并发编程实战</title>
     <url>/blog/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%AE%9E%E6%88%98.html</url>
     <content><![CDATA[<h2 id="线程安全性"><a href="#线程安全性" class="headerlink" title="线程安全性"></a>线程安全性</h2><p>要编写线程安全的代码，核心在于<span class="label primary">要对状态访问操作进行管理</span>，特别是对<strong>共享的</strong>和<strong>可变的</strong>状态的访问。</p>
