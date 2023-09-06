@@ -227,6 +227,15 @@ volatile的处理器内存屏障插入策略：
 
 {% note %}
 我的疑惑：为什么不需要在每个volatile写操作的前面插入一个LoadStore屏障，来防止第一个普通读和第二个volatile写操作重排序？？？
+
+假设volatile写之前如果加上LoadStore屏障的效果是什么？
+
+1. 普通读--volatile写 禁止重排序
+2. volatile读--volatile写 禁止重排序
+
+对于第2点，因为volatile读之后有LoadStore屏障，就已经达到了禁止重排序的效果。
+对于第1点，volatile的写操作的内存语义与释放锁相同，即会刷新该线程的写缓冲到内存中，而普通变量读根本不涉及到写缓冲，所以即使重排序了也不会破坏volatile的内存语义。 
+所以，不需要在volatile的写操作前加LoadStore屏障。
 {% endnote %}
 
 ### 锁的内存语义
