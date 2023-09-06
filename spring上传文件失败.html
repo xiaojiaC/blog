@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=SimHei, Verdana, sans-serif:300,300italic,400,400italic,700,700italic|KaiTi, "Microsoft YaHei", Georgia, sans:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/pace-js@1/themes/blue/pace-theme-minimal.css">
+  <script src="//cdn.jsdelivr.net/npm/pace-js@1/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="问题现象生产素材上传正常运行已有一段时间，突然某天运营告知素材文件无法上传，奇怪的是最近一直无此块代码相关变更，于是乎就这样走进“幽灵探索”之路… 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364DEBUG 2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring mvc文件上传为何突然失败？">
+<meta property="og:url" content="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5.html">
+<meta property="og:site_name" content="Oh_null&#39;s blog">
+<meta property="og:description" content="问题现象生产素材上传正常运行已有一段时间，突然某天运营告知素材文件无法上传，奇怪的是最近一直无此块代码相关变更，于是乎就这样走进“幽灵探索”之路… 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364DEBUG 2">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5/MultipartAutoConfig.PNG">
+<meta property="article:published_time" content="2023-08-26T14:00:32.000Z">
+<meta property="article:modified_time" content="2023-09-06T15:47:51.347Z">
+<meta property="article:author" content="xiaojiaC">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="spring mvc">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5/MultipartAutoConfig.PNG">
+
+<link rel="canonical" href="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>spring mvc文件上传为何突然失败？ | Oh_null's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/blog/atom.xml" title="Oh_null's blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/blog/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Oh_null's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/blog/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/blog/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/blog/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar.gif">
+      <meta itemprop="name" content="xiaojiaC">
+      <meta itemprop="description" content="世上本无路，走的人多了，便成了路。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Oh_null's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spring mvc文件上传为何突然失败？
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-08-26 22:00:32" itemprop="dateCreated datePublished" datetime="2023-08-26T22:00:32+08:00">2023-08-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/JAVA/" itemprop="url" rel="index"><span itemprop="name">JAVA</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/JAVA/%E6%BC%8F%E6%B4%9E%E8%AE%B0%E4%BA%8B/" itemprop="url" rel="index"><span itemprop="name">漏洞记事</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>14k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>13 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><p>生产素材上传正常运行已有一段时间，突然某天运营告知素材文件无法上传，奇怪的是最近一直无此块代码相关变更，于是乎就这样走进“幽灵探索”之路…</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] DispatcherServlet : POST &quot;&#x2F;cmsapi&#x2F;material&#x2F;upload&quot;, parameters&#x3D;&#123;masked&#125;</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] PropertySourcedRequestMappingHandlerMapping : looking up handler for path: &#x2F;cmsapi&#x2F;material&#x2F;upload</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] RequestMappingHandlerMapping : Mapped to com.xxx.cms.controller.MaterialController#uploadMaterials(UploadMaterialsRequest)</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] ServletInvocableHandlerMethod : Could not resolve parameter [0] in public com.xxx.cms.vo.Response&lt;com.xxx.cms.vo.ObjectResult&lt;com.xxx.cms.service.common.oss.OssFileDto&gt;&gt; com.xxx.cms.controller.MaterialController.uploadMaterials(com.xxx.cms.request.UploadMaterialsRequest): org.springframework.validation.BeanPropertyBindingResult: 1 errors</span><br><span class="line">Field error in object &#39;uploadMaterialsRequest&#39; on field &#39;file&#39;: rejected value [null]; codes [NotNull.uploadMaterialsRequest.file,NotNull.file,NotNull.org.springframework.web.multipart.MultipartFile,NotNull]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [uploadMaterialsRequest.file,file]; arguments []; default message [file]]; default message [material.file.null]</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.xxx.cms.advice.ApiExceptionAdvice#handleBindException(BindException)</span><br><span class="line">INFO 29208 -- [http-nio-8080-exec-4] ApiExceptionAdvice : org.springframework.validation.BeanPropertyBindingResult: 1 errors</span><br><span class="line">Field error in object &#39;uploadMaterialsRequest&#39; on field &#39;file&#39;: rejected value [null]; codes [NotNull.uploadMaterialsRequest.file,NotNull.file,NotNull.org.springframework.web.multipart.MultipartFile,NotNull]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [uploadMaterialsRequest.file,file]; arguments []; default message [file]]; default message [material.file.null]</span><br><span class="line">org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors</span><br><span class="line">Field error in object &#39;uploadMaterialsRequest&#39; on field &#39;file&#39;: rejected value [null]; codes [NotNull.uploadMaterialsRequest.file,NotNull.file,NotNull.org.springframework.web.multipart.MultipartFile,NotNull]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [uploadMaterialsRequest.file,file]; arguments []; default message [file]]; default message [material.file.null]</span><br><span class="line">at org.springframework.web.method.annotation.ModelAttributeMethodProcessor.resolveArgument(ModelAttributeMethodProcessor.java:164) ~[spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.method.support.HandlerMethodArgumentResolverComposite.resolveArgument(HandlerMethodArgumentResolverComposite.java:121) ~[spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.method.support.InvocableHandlerMethod.getMethodArgumentValues(InvocableHandlerMethod.java:167) ~[spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:134) ~[spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:106) ~[spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:888) ~[spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:793) ~[spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1040) [spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:943) [spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006) [spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:909) [spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at javax.servlet.http.HttpServlet.service(HttpServlet.java:660) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:883) [spring-webmvc-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at javax.servlet.http.HttpServlet.service(HttpServlet.java:741) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:231) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:92) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119) [spring-web-5.2.3.RELEASE.jar:5.2.3.RELEASE]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:202) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:96) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:139) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:343) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:367) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:860) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1598) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) [?:1.8.0_65]</span><br><span class="line">at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) [?:1.8.0_65]</span><br><span class="line">	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) [tomcat-embed-core-9.0.30.jar:9.0.30]</span><br><span class="line">at java.lang.Thread.run(Thread.java:745) [?:1.8.0_65]</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] RequestResponseBodyMethodProcessor : Using &#39;application&#x2F;json&#39;, given [application&#x2F;json] and supported [application&#x2F;json, application&#x2F;*+json, application&#x2F;json, application&#x2F;*+json, application&#x2F;cbor]</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] RequestResponseBodyMethodProcessor : Writing [Response(code&#x3D;400, msg&#x3D;无效请求, data&#x3D;null, errors&#x3D;[com.xxx.cms.vo.FieldDefaultVo@7c382733])]</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] ExceptionHandlerExceptionResolver : Resolved [org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors</span><br><span class="line">Field error in object &#39;uploadMaterialsRequest&#39; on field &#39;file&#39;: rejected value [null]; codes [NotNull.uploadMaterialsRequest.file,NotNull.file,NotNull.org.springframework.web.multipart.MultipartFile,NotNull]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [uploadMaterialsRequest.file,file]; arguments []; default message [file]]; default message [material.file.null]]</span><br><span class="line">DEBUG 29208 -- [http-nio-8080-exec-4] DispatcherServlet : Completed 200 OK</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<h3 id="运行环境"><a href="#运行环境" class="headerlink" title="运行环境"></a>运行环境</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">java: 8</span><br><span class="line">spring-boot-starter-web: 2.2.4.RELEASE</span><br><span class="line">spring-boot-starter-log4j2: 2.2.4.RELEASE</span><br></pre></td></tr></table></figure>
+
+<h3 id="我的代码"><a href="#我的代码" class="headerlink" title="我的代码"></a>我的代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@PostMapping</span>(value = <span class="string">"material/upload"</span>, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)</span><br><span class="line"><span class="keyword">public</span> Response&lt;ObjectResult&lt;OssFileDto&gt;&gt; upload(<span class="meta">@Valid</span> UploadMaterialsRequest request) &#123;</span><br><span class="line">    OssFileDto ossFile = materialService.bulkUpload(request);</span><br><span class="line">    <span class="keyword">return</span> Response.success(ObjectResult.of(ossFile, f -&gt; &#123;</span><br><span class="line">        fileRepository.setOssFileToken(request.getType(), f.getFileToken());</span><br><span class="line">    &#125;));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UploadMaterialsRequest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@NotNull</span>(message = <span class="string">"material.type.null"</span>)</span><br><span class="line">    <span class="meta">@EnumValue</span>(type = MaterialTypeEnum<span class="class">.<span class="keyword">class</span>, <span class="title">message</span> </span>= <span class="string">"material.type.illegal"</span>)</span><br><span class="line">    <span class="keyword">private</span> Integer type;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@NotNull</span>(message = <span class="string">"material.file.null"</span>)</span><br><span class="line">    <span class="keyword">private</span> MultipartFile file;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="排查之路"><a href="#排查之路" class="headerlink" title="排查之路"></a>排查之路</h3><p>首先咨询同事，发现最近上线了一个新特性，但不涉及素材功能相关代码改动，搜索错误日志发现生产<span class="label primary">竟然</span>开启了<code>DEBUG</code>，有相关错误记录，发现 <span class="label danger">Field error in object uploadMaterialsRequest on field file: rejected value [null];</span>目前无法获取到上传的文件，但具体为何突然取不到？<br>尝试预发环境测试发现功能正常，想看下日志现场于是将日志级别调为<code>DEBUG</code>，发现问题复现了。猜测可能是<strong>动态日志级别修改导致</strong>，将线上<code>DEBUG</code>关闭后测试发现恢复，那为何日志级别会影响到文件读取呢？</p>
+<h4 id="关键调用栈"><a href="#关键调用栈" class="headerlink" title="关键调用栈"></a>关键调用栈</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">......</span><br><span class="line">parseRequest:<span class="number">276</span>, FileUploadBase (org.apache.tomcat.util.http.fileupload)</span><br><span class="line">parseParts:<span class="number">2867</span>, Request (org.apache.catalina.connector)  <span class="comment">// 解析MultipartFile</span></span><br><span class="line">parseParameters:<span class="number">3195</span>, Request (org.apache.catalina.connector)</span><br><span class="line">getParameterNames:<span class="number">1159</span>, Request (org.apache.catalina.connector)</span><br><span class="line">getParameterMap:<span class="number">1138</span>, Request (org.apache.catalina.connector)</span><br><span class="line">getParameterMap:<span class="number">443</span>, RequestFacade (org.apache.catalina.connector)</span><br><span class="line">lambda$logRequest$<span class="number">2</span>:<span class="number">964</span>, DispatcherServlet (org.springframework.web.servlet)</span><br><span class="line">apply:-<span class="number">1</span>, <span class="number">146803671</span> (org.springframework.web.servlet.DispatcherServlet$$Lambda$<span class="number">867</span>)</span><br><span class="line">traceDebug:<span class="number">86</span>, LogFormatUtils (org.springframework.core.log)</span><br><span class="line">logRequest:<span class="number">956</span>, DispatcherServlet (org.springframework.web.servlet) <span class="comment">// 打印请求日志</span></span><br><span class="line">doService:<span class="number">911</span>, DispatcherServlet (org.springframework.web.servlet)</span><br><span class="line">processRequest:<span class="number">1006</span>, FrameworkServlet (org.springframework.web.servlet)</span><br><span class="line">doPost:<span class="number">909</span>, FrameworkServlet (org.springframework.web.servlet)</span><br><span class="line">service:<span class="number">660</span>, HttpServlet (javax.servlet.http)</span><br></pre></td></tr></table></figure>
+
+<h4 id="关键代码段"><a href="#关键代码段" class="headerlink" title="关键代码段"></a>关键代码段</h4><figure class="highlight java"><figcaption><span>org.apache.catalina.connector.Request</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">parseParts</span><span class="params">(<span class="keyword">boolean</span> explicit)</span> </span>&#123; <span class="comment">// explicit为false</span></span><br><span class="line">    <span class="keyword">if</span> (parts != <span class="keyword">null</span> || partsParseException != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    Context context = getContext();</span><br><span class="line">    MultipartConfigElement mce = getWrapper().getMultipartConfigElement();</span><br><span class="line">    <span class="keyword">if</span> (mce == <span class="keyword">null</span>) &#123; <span class="comment">// 可以看到这里如果返回null，会跳过后续解析parts</span></span><br><span class="line">        <span class="keyword">if</span>(context.getAllowCasualMultipartParsing()) &#123;</span><br><span class="line">            mce = <span class="keyword">new</span> MultipartConfigElement(<span class="keyword">null</span>, connector.getMaxPostSize(),</span><br><span class="line">                    connector.getMaxPostSize(), connector.getMaxPostSize());</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (explicit) &#123;</span><br><span class="line">                partsParseException = <span class="keyword">new</span> IllegalStateException(</span><br><span class="line">                        sm.getString(<span class="string">"coyoteRequest.noMultipartConfig"</span>));</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                parts = Collections.emptyList();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 解析parts 略...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>观察以上调用栈，可以看到如果开启<code>DEBUG</code>模式，spring mvc 会解析请求参数打印请求日志，file 文件流此时已被提前解析读取一次，导致后续参数绑定时再次读取失败。</p>
+<h3 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h3><ol>
+<li>关闭<code>DispatcherServlet</code>的<code>DEBUG</code>模式（但生产有时会利用<code>ROOT=DEBUG</code>排查其他问题）</li>
+<li>让<code>StandardWrapper#getMultipartConfigElement()</code>返回<code>null</code>跳过解析（最终采用）</li>
+</ol>
+<img src="/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5/MultipartAutoConfig.PNG" class="" title="SpringBoot Multipart自动配置">
+
+<p>从上图可以看出默认 springboot 自动配置了 <code>spring.servlet.multipart.enabled=true</code>，默认启用<code>StandardServletMultipartResolver</code>，会初始化<code>MultipartConfigElement</code>；因此我们可以自定义<code>CommonsMultipartResolver</code>替换默认的解析器，并关闭<code>spring.servlet.multipart.enabled</code>即可实现方案 2。</p>
+<figure class="highlight xml"><figcaption><span>pom.xml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>commons-fileupload<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>commons-fileupload<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.5<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight properties"><figcaption><span>application.properties</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">spring.servlet.multipart.enabled</span>=<span class="string">false</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><figcaption><span>WebConfig.java</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WebConfig</span> <span class="keyword">implements</span> <span class="title">WebMvcConfigurer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> MultipartResolver <span class="title">multipartResolver</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        CommonsMultipartResolver resolver = <span class="keyword">new</span> CommonsMultipartResolver();</span><br><span class="line">        resolver.setDefaultEncoding(StandardCharsets.UTF_8.name());</span><br><span class="line">        resolver.setMaxUploadSize(<span class="number">10</span> * <span class="number">1024</span> * <span class="number">1024</span>); <span class="comment">// 10M</span></span><br><span class="line">        <span class="keyword">return</span> resolver;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">
+        <span>------------------本文结束</span>
+        <i class="fa fa-paw"></i>
+        <span>感谢阅读------------------</span>
+        </div>
+    
+</div>
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>xiaojiaC
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://xiaojiac.github.io/blog/spring%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%B1%E8%B4%A5.html" title="spring mvc文件上传为何突然失败？">http://xiaojiac.github.io/blog/spring上传文件失败.html</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/java/" rel="tag"><i class="fa fa-tag"></i> java</a>
+              <a href="/blog/tags/spring-mvc/" rel="tag"><i class="fa fa-tag"></i> spring mvc</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.html" rel="prev" title="java垃圾回收器">
+      <i class="fa fa-chevron-left"></i> java垃圾回收器
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题现象"><span class="nav-number">1.</span> <span class="nav-text">问题现象</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#运行环境"><span class="nav-number">1.1.</span> <span class="nav-text">运行环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我的代码"><span class="nav-number">1.2.</span> <span class="nav-text">我的代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#排查之路"><span class="nav-number">1.3.</span> <span class="nav-text">排查之路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#关键调用栈"><span class="nav-number">1.3.1.</span> <span class="nav-text">关键调用栈</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关键代码段"><span class="nav-number">1.3.2.</span> <span class="nav-text">关键代码段</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案"><span class="nav-number">1.4.</span> <span class="nav-text">解决方案</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="xiaojiaC"
+      src="/blog/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">xiaojiaC</p>
+  <div class="site-description" itemprop="description">世上本无路，走的人多了，便成了路。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/blog/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/xiaojiaC" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;xiaojiaC" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/xiaojia1100" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;xiaojia1100" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:xiaojia1100@163.com" title="E-Mail → mailto:xiaojia1100@163.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://xiaojiac.github.io/hello-world" title="Manual → https:&#x2F;&#x2F;xiaojiac.github.io&#x2F;hello-world"><i class="fa fa-fw fa-bookmark"></i>Manual</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/blog/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaojiaC</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,205,0' opacity='0.5' zIndex='-1' count='88' src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-nest@1/canvas-nest.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+  
+
+  <script async src="/blog/js/cursor/fireworks.js"></script>
+
+
+
+
+  <script src="/blog/js/activate-power-mode.min.js"></script>
+  <script>
+    POWERMODE.colorful = true;
+    POWERMODE.shake = false;
+    document.body.addEventListener('input', POWERMODE);
+  </script>
+
+
+
+
+</body>
+</html>
