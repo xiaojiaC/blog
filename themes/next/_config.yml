@@ -33,7 +33,6 @@ custom_file_path:
   #mixin: source/_data/mixins.styl
   #style: source/_data/styles.styl
 
-
 # ---------------------------------------------------------------
 # Site Information Settings
 # See: https://theme-next.org/docs/getting-started/
@@ -98,7 +97,6 @@ creative_commons:
   post: true
   language:
 
-
 # ---------------------------------------------------------------
 # Scheme Settings
 # ---------------------------------------------------------------
@@ -111,7 +109,6 @@ scheme: Gemini
 
 # Dark Mode
 darkmode: false
-
 
 # ---------------------------------------------------------------
 # Menu Settings
@@ -136,7 +133,6 @@ menu:
 menu_settings:
   icons: true
   badges: false
-
 
 # ---------------------------------------------------------------
 # Sidebar Settings
@@ -234,7 +230,6 @@ chat:
   icon: comment # Icon name in Font Awesome, set false to disable icon.
   text: Chat # Button text, change it as you wish.
 
-
 # ---------------------------------------------------------------
 # Post Settings
 # See: https://theme-next.org/docs/theme-settings/posts
@@ -314,7 +309,6 @@ post_edit:
 # Available values: left | right | false
 post_navigation: left
 
-
 # ---------------------------------------------------------------
 # Custom Page Settings
 # See: https://theme-next.org/docs/theme-settings/custom-pages
@@ -340,7 +334,6 @@ calendar:
   showDeleted: false
   singleEvents: true
   maxResults: 250
-
 
 # ---------------------------------------------------------------
 # Misc Theme Settings
@@ -371,18 +364,18 @@ codeblock:
   highlight_theme: normal
   # Add copy button on codeblock
   copy_button:
-    enable: false
+    enable: true
     # Show text copy result.
-    show_result: false
+    show_result: true
     # Available values: default | flat | mac
-    style:
+    style: default
 
 back2top:
   enable: true
   # Back to top in sidebar.
   sidebar: false
   # Scroll percent label in b2t button.
-  scrollpercent: false
+  scrollpercent: true
 
 # Reading progress bar
 reading_progress:
@@ -404,9 +397,8 @@ bookmark:
 # `Follow me on GitHub` banner in the top-right corner.
 github_banner:
   enable: false
-  permalink: https://github.com/yourname
+  permalink: https://github.com/xiaojiaC/blog
   title: Follow me on GitHub
-
 
 # ---------------------------------------------------------------
 # Font Settings
@@ -442,7 +434,7 @@ font:
   title:
     external: true
     family: KaiTi, "Microsoft YaHei", Georgia, sans
-    size: 
+    size:
 
   # Font settings for headlines (<h1> to <h6>).
   headings:
@@ -459,7 +451,6 @@ font:
   codes:
     external: true
     family:
-
 
 # ---------------------------------------------------------------
 # SEO Settings
@@ -501,7 +492,6 @@ baidu_site_verification:
 
 # Enable baidu push so that the blog will push the url to baidu automatically which is very helpful for SEO.
 baidu_push: false
-
 
 # ---------------------------------------------------------------
 # Third Party Plugins & Services Settings
@@ -574,7 +564,6 @@ quicklink:
   # See: https://github.com/GoogleChromeLabs/quicklink#custom-ignore-patterns
   ignores:
 
-
 # ---------------------------------------------------------------
 # Comments Settings
 # See: https://theme-next.org/docs/third-party-services/comments
@@ -586,7 +575,7 @@ comments:
   style: tabs
   # Choose a comment system to be displayed by default.
   # Available values: changyan | disqus | disqusjs | gitalk | livere | valine
-  active:
+  active: gitalk
   # Setting `true` means remembering the comment system selected by the visitor.
   storage: true
   # Lazyload all comment systems.
@@ -596,8 +585,8 @@ comments:
     #disqus:
     #  text: Load Disqus
     #  order: -1
-    #gitalk:
-    #  order: -2
+    gitalk:
+      order: -2
 
 # Disqus
 disqus:
@@ -653,18 +642,17 @@ livere_uid: # <your_uid>
 # Gitalk
 # For more information: https://gitalk.github.io, https://github.com/gitalk/gitalk
 gitalk:
-  enable: false
-  github_id: # GitHub repo owner
-  repo: # Repository name to store issues
-  client_id: # GitHub Application Client ID
-  client_secret: # GitHub Application Client Secret
-  admin_user: # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
+  enable: true
+  github_id: xiaojiaC # GitHub repo owner
+  repo: xiaojiac.github.io # Repository name to store issues
+  client_id: ca04a690fc7d8704b245 # GitHub Application Client ID
+  client_secret: 3a2323e1d434c5ddc65075f18bbacc09d20a0dfb # GitHub Application Client Secret
+  admin_user: xiaojiaC # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
   distraction_free_mode: true # Facebook-like distraction free mode
   # Gitalk's display language depends on user's browser or system environment
   # If you want everyone visiting your site to see a uniform language, you can set a force language value
   # Available values: en | es-ES | fr | ru | zh-CN | zh-TW
-  language:
-
+  language: zh-CN
 
 # ---------------------------------------------------------------
 # Post Widgets & Content Sharing Services
@@ -675,13 +663,12 @@ gitalk:
 # To get your ID visit https://widgetpack.com
 rating:
   enable: false
-  id:     # <app_id>
-  color:  fc6423
+  id: # <app_id>
+  color: fc6423
 
 # AddThis Share. See: https://www.addthis.com
 # Go to https://www.addthis.com/dashboard to customize your tools.
 add_this_id:
-
 
 # ---------------------------------------------------------------
 # Statistics and Analytics
@@ -738,7 +725,6 @@ busuanzi_count:
   post_views: true
   post_views_icon: eye
 
-
 # ---------------------------------------------------------------
 # Search Services
 # See: https://theme-next.org/docs/third-party-services/search-services
@@ -772,7 +758,6 @@ local_search:
 # Swiftype Search API Key
 swiftype_key:
 
-
 # ---------------------------------------------------------------
 # Chat Services
 # See: https://theme-next.org/docs/third-party-services/chat-services
@@ -794,7 +779,6 @@ tidio:
   enable: false
   key: 0yoj5e9wjgnfe9057ghmw0u0l7wqn3hk # Public Key, get it from dashboard. See: https://www.tidiochat.com/panel/settings/developer
 
-
 # ---------------------------------------------------------------
 # Tags Settings
 # See: https://theme-next.org/docs/tag-plugins/
@@ -809,7 +793,7 @@ note:
   #  - disabled  disable all CSS styles import of note tag.
   style: modern
   icons: true
-  border_radius: 3 
+  border_radius: 3
   # Offset lighter of background in % for modern and flat styles (modern: -12 | 12; flat: -18 | 6).
   # Offset also applied to label tag variables. This option can work with disabled note tag.
   light_bg_offset: 0
@@ -835,7 +819,6 @@ mermaid:
   enable: false
   # Available themes: default | dark | forest | neutral
   theme: forest
-
 
 # ---------------------------------------------------------------
 # Animation Settings
@@ -898,7 +881,6 @@ canvas_ribbon:
   size: 300 # The width of the ribbon
   alpha: 0.6 # The transparency of the ribbon
   zIndex: -1 # The display level of the ribbon
-
 
 #! ---------------------------------------------------------------
 #! DO NOT EDIT THE FOLLOWING SETTINGS
