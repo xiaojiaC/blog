@@ -3,7 +3,7 @@
   <entry>
     <title>代理模式</title>
     <url>/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F.html</url>
-    <content><![CDATA[<h2 id="享元模式"><a href="#享元模式" class="headerlink" title="享元模式"></a>享元模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>为另一个对象提供代理以控制对其的访问。</p>
+    <content><![CDATA[<h2 id="代理模式"><a href="#代理模式" class="headerlink" title="代理模式"></a>代理模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>为另一个对象提供代理以控制对其的访问。</p>
 <h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
 <li>需要在不修改原代码的基础上，扩展和增强实现</li>
 <li>需要隐藏部分实现过程和细节，对象的访问控制</li>
