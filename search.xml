@@ -1,6 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>代理模式</title>
+    <url>/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F.html</url>
+    <content><![CDATA[<h2 id="享元模式"><a href="#享元模式" class="headerlink" title="享元模式"></a>享元模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>为另一个对象提供代理以控制对其的访问。</p>
+<h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
+<li>需要在不修改原代码的基础上，扩展和增强实现</li>
+<li>需要隐藏部分实现过程和细节，对象的访问控制</li>
+<li>事务代理</li>
+<li>非侵入式日志监听</li>
+<li>……</li>
+</ul>
+<a id="more"></a>
+
+<h3 id="经典案例"><a href="#经典案例" class="headerlink" title="经典案例"></a>经典案例</h3><ul>
+<li><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Proxy.html" target="_blank" rel="noopener">java.lang.reflect.Proxy</a></li>
+<li><a href="https://cglib.sourceforge.net/apidocs/net/sf/cglib/proxy/Enhancer.html" target="_blank" rel="noopener">cglib dynamic proxy</a></li>
+<li><a href="https://commons.apache.org/proper/commons-proxy/" target="_blank" rel="noopener">apache commons proxy</a></li>
+<li><a href="https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html" target="_blank" rel="noopener">mockito</a>以及<a href="https://easymock.org/user-guide.html" target="_blank" rel="noopener">easymock</a>、<a href="https://powermock.github.io/" target="_blank" rel="noopener">powermock</a>等 mock 框架</li>
+</ul>
+<h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 想象有一个塔，当地的巫师去那里学习他们的法术。通过代理象牙塔进入功能，以此来保证只有前3个巫师才能进入。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">IvoryTower</span> <span class="keyword">implements</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span> </span>&#123;</span><br><span class="line">        System.out.println(wizard + <span class="string">" enters the tower."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WizardTowerProxy</span> <span class="keyword">implements</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> NUM_WIZARDS_ALLOWED = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> numWizards;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> WizardTower tower;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WizardTowerProxy</span><span class="params">(WizardTower tower)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.tower = tower;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (numWizards &lt; NUM_WIZARDS_ALLOWED) &#123;</span><br><span class="line">            tower.enter(wizard);</span><br><span class="line">            numWizards++;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            System.out.println(wizard + <span class="string">" is not allowed to enter!"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><a href="">示例代码</a></p>
+</blockquote>
+<h4 id="静态代理"><a href="#静态代理" class="headerlink" title="静态代理"></a>静态代理</h4><p>手动生成并维护代理类的源码，控制被代理对象的访问。</p>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li>静态代理在委托类变多的情况时会显的非常臃肿，不方便阅读与使用；</li>
+<li>接口类变化会影响委托类和代理类：比如方法修改返回值、参数类型、增加方法，实现类和代理类都需要修改，不够灵活。</li>
+</ul>
+<h4 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h4><p>使用反射和字节码的技术，在运行期创建指定接口的实现或类的子类及其实例对象，控制被代理对象的访问。</p>
+<ul>
+<li>jdk 代理</li>
+</ul>
+<ol>
+<li>定义一个接口和接口的实现类</li>
+<li>创建一个代理类实现<code>InvocationHandler</code>接口（指定运行时生成代理类需要完成的具体任务）</li>
+<li>重写<code>InvocationHandler</code>接口中的<code>invoke</code>方法</li>
+<li>创建被代理类的对象，通过代理类对象来调用相应方法</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WizardTowerInvocationHandler</span> <span class="keyword">implements</span> <span class="title">InvocationHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> NUM_WIZARDS_ALLOWED = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> numWizards;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> WizardTower tower;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WizardTowerInvocationHandler</span><span class="params">(WizardTower tower)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.tower = tower;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Object proxy, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (numWizards &lt; NUM_WIZARDS_ALLOWED) &#123;</span><br><span class="line">            Object result = method.invoke(tower, args);</span><br><span class="line">            numWizards++;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Wizard wizard = (Wizard) args[<span class="number">0</span>];</span><br><span class="line">            System.out.println(wizard + <span class="string">" is not allowed to enter!"</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        InvocationHandler invocationHandler = <span class="keyword">new</span> WizardTowerInvocationHandler(<span class="keyword">new</span> IvoryTower());</span><br><span class="line">        WizardTower tower = (WizardTower) Proxy.newProxyInstance(WizardTower<span class="class">.<span class="keyword">class</span>.<span class="title">getClassLoader</span>(),</span></span><br><span class="line">                new Class[]&#123;WizardTower.class&#125;, invocationHandler);</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Red wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"White wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Black wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Green wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Brown wizard"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>cglib 代理</li>
+</ul>
+<ol>
+<li>定义一个接口和接口的实现类</li>
+<li>创建一个代理类实现<code>MethodInterceptor</code>接口（指定运行时生成代理类需要完成的具体任务）</li>
+<li>重写<code>MethodInterceptor</code>接口中的<code>intercept</code>方法<ul>
+<li>可以通过<code>CallbackFilter</code>来过滤要重写的方法</li>
+</ul>
+</li>
+<li>创建被代理类的对象，通过代理类对象来调用相应方法</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WizardTowerMethodInterceptor</span> <span class="keyword">implements</span> <span class="title">MethodInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> NUM_WIZARDS_ALLOWED = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> numWizards;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WizardTowerMethodInterceptor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">intercept</span><span class="params">(Object obj, Method method, Object[] args, MethodProxy methodProxy)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (numWizards &lt; NUM_WIZARDS_ALLOWED) &#123;</span><br><span class="line">            Object result = methodProxy.invokeSuper(obj, args);</span><br><span class="line">            numWizards++;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Wizard wizard = (Wizard) args[<span class="number">0</span>];</span><br><span class="line">            System.out.println(wizard + <span class="string">" is not allowed to enter!"</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Enhancer enhancer = <span class="keyword">new</span> Enhancer();</span><br><span class="line">        enhancer.setSuperclass(IvoryTower<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        enhancer.setCallback(<span class="keyword">new</span> WizardTowerMethodInterceptor()); <span class="comment">// 会拦截IvoryTower中的所有方法</span></span><br><span class="line">        IvoryTower tower = (IvoryTower) enhancer.create();</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Red wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"White wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Black wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Green wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Brown wizard"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy.png" class="">
+
+<p>类图中主要包含三个核心角色：</p>
+<p>抽象对象角色（WizardTower）：声明了目标对象和代理对象的共同接口，这样依赖在任何可以使用目标对象的地方都可以使用代理对象。<br>目标对象角色（IvoryTower）：定义了代理对象所代表的目标对象。<br>代理对象角色（WizardTowerProxy）：代理对象内部含有目标对象的引用，从而可以在任何时候操作目标对象；代理对象提供一个与目标对象相同的接口，以便可以在任何时候替代目标对象。代理对象通常在客户端调用传递给目标对象之前或者之后执行某个操作，而不是单纯的将调用传递给目标对象。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+        <category>代理模式</category>
+      </categories>
+      <tags>
+        <tag>design patterns</tag>
+        <tag>structural</tag>
+        <tag>proxy</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>享元模式</title>
     <url>/blog/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F.html</url>
     <content><![CDATA[<h2 id="享元模式"><a href="#享元模式" class="headerlink" title="享元模式"></a>享元模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>使用共享有效地支持大量细粒度对象的复用。</p>
