@@ -1,6 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>策略模式</title>
+    <url>/blog/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F.html</url>
+    <content><![CDATA[<h2 id="策略模式"><a href="#策略模式" class="headerlink" title="策略模式"></a>策略模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>定义一个算法族，并将每个算法封装起来，使它们可以互相替换。</p>
+<h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
+<li>需要在运行时自由选择最匹配的算法</li>
+<li>需要使用一个算法的不同变体</li>
+<li>需要避免暴露复杂的特定于算法的规则</li>
+<li>需要避免多重条件语句嵌套</li>
+<li>排序算法</li>
+<li>……</li>
+</ul>
+<a id="more"></a>
+
+<h3 id="经典案例"><a href="#经典案例" class="headerlink" title="经典案例"></a>经典案例</h3><ul>
+<li><a href="https://docs.spring.io/spring-framework/docs/5.3.29/javadoc-api/org/springframework/web/accept/ContentNegotiationStrategy.html" target="_blank" rel="noopener">Spring ContentNegotiationStrategy</a></li>
+</ul>
+<h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 屠龙是一项危险的职业。有经验将会使它变得简单。经验丰富的屠龙者对不同类型的龙有不同的战斗策略。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DragonSlayingStrategy</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MeleeStrategy</span> <span class="keyword">implements</span> <span class="title">DragonSlayingStrategy</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"用神剑切断这条龙的头部!"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ProjectileStrategy</span> <span class="keyword">implements</span> <span class="title">DragonSlayingStrategy</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"向龙投掷魔法弩!"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SpellStrategy</span> <span class="keyword">implements</span> <span class="title">DragonSlayingStrategy</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"念念有词，对龙念咒语中!"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DragonSlayer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> DragonSlayingStrategy strategy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DragonSlayer</span><span class="params">(DragonSlayingStrategy strategy)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.strategy = strategy;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">changeStrategy</span><span class="params">(DragonSlayingStrategy strategy)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.strategy = strategy;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">goToBattle</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        strategy.execute();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><a href="">示例代码</a></p>
+</blockquote>
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/strategy.png" class="">
+
+<p>类图中主要包含三个核心角色：</p>
+<p>抽象策略角色（DragonSlayingStrategy）：规定策略或算法的行为。<br>具体策略角色（MeleeStrategy/ProjectileStrategy/SpellStrategy）：具体的策略或算法实现。<br>上下文角色（DragonSlayer）：用来操作策略的上下文，屏蔽高层模块(客户端)对策略、算法的直接访问，封装可能存在的变化。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+        <category>策略模式</category>
+      </categories>
+      <tags>
+        <tag>design patterns</tag>
+        <tag>behavioral</tag>
+        <tag>strategy</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>代理模式</title>
     <url>/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F.html</url>
     <content><![CDATA[<h2 id="代理模式"><a href="#代理模式" class="headerlink" title="代理模式"></a>代理模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>为另一个对象提供代理以控制对其的访问。</p>
@@ -107,7 +144,7 @@
       </categories>
       <tags>
         <tag>design patterns</tag>
-        <tag>creational</tag>
+        <tag>structural</tag>
         <tag>flyweight</tag>
       </tags>
   </entry>
