@@ -1,6 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>组合模式</title>
+    <url>/blog/%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F.html</url>
+    <content><![CDATA[<h2 id="组合模式"><a href="#组合模式" class="headerlink" title="组合模式"></a>组合模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>将对象组合成树结构以表示部分整体层次结构。 组合可以使客户统一对待单个对象和组合对象。</p>
+<h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
+<li>需要表示一个对象整体与部分的层次结构时，可以使用组合模式来实现树形结构。例如：文件系统中的文件与文件夹。</li>
+<li>需要忽略组合对象和单个对象之间的差异，客户将统一对待组合结构中的所有对象。例如：菜单系统中的菜单项与子菜单。</li>
+<li>需要将对象的创建和使用分离时，可以使用组合模式来实现依赖注入。例如：<code>Spring</code>框架中的 Bean 对象。</li>
+<li>……</li>
+</ul>
+<a id="more"></a>
+
+<h3 id="经典案例"><a href="#经典案例" class="headerlink" title="经典案例"></a>经典案例</h3><ul>
+<li><a href="http://docs.oracle.com/javase/8/docs/api/java/awt/Container.html" target="_blank" rel="noopener">java.awt.Container</a> / <a href="http://docs.oracle.com/javase/8/docs/api/java/awt/Component.html" target="_blank" rel="noopener">java.awt.Component</a></li>
+</ul>
+<h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 每个句子由单词组成，单词又由字符组成。这些对象中的每一个都是可打印的，它们可以在它们之前或之后打印一些内容，</span></span><br><span class="line"><span class="comment"> * 例如句子始终以句号结尾，单词始终在其前面有空格。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">LetterComposite</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> List&lt;LetterComposite&gt; children = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(LetterComposite letter)</span> </span>&#123;</span><br><span class="line">        children.add(letter);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">count</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> children.size();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">printThisBefore</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">printThisAfter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">print</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        printThisBefore();</span><br><span class="line">        children.forEach(LetterComposite::print);</span><br><span class="line">        printThisAfter();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Letter</span> <span class="keyword">extends</span> <span class="title">LetterComposite</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">char</span> character;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Letter</span><span class="params">(<span class="keyword">char</span> c)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.character = c;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">printThisBefore</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.print(character);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Word</span> <span class="keyword">extends</span> <span class="title">LetterComposite</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Word</span><span class="params">(List&lt;Letter&gt; letters)</span> </span>&#123;</span><br><span class="line">        letters.forEach(<span class="keyword">this</span>::add);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Word</span><span class="params">(<span class="keyword">char</span>... letters)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">char</span> letter : letters) &#123;</span><br><span class="line">            <span class="keyword">this</span>.add(<span class="keyword">new</span> Letter(letter));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">printThisBefore</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.print(<span class="string">" "</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sentence</span> <span class="keyword">extends</span> <span class="title">LetterComposite</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sentence</span><span class="params">(List&lt;Word&gt; words)</span> </span>&#123;</span><br><span class="line">        words.forEach(<span class="keyword">this</span>::add);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">printThisAfter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.print(<span class="string">".\r\n"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Messenger</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function">LetterComposite <span class="title">messageFromOrcs</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        List&lt;Word&gt; words = List.of(</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'W'</span>, <span class="string">'h'</span>, <span class="string">'e'</span>, <span class="string">'r'</span>, <span class="string">'e'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'t'</span>, <span class="string">'h'</span>, <span class="string">'e'</span>, <span class="string">'r'</span>, <span class="string">'e'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'i'</span>, <span class="string">'s'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'a'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'w'</span>, <span class="string">'h'</span>, <span class="string">'i'</span>, <span class="string">'p'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'t'</span>, <span class="string">'h'</span>, <span class="string">'e'</span>, <span class="string">'r'</span>, <span class="string">'e'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'i'</span>, <span class="string">'s'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'a'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'w'</span>, <span class="string">'a'</span>, <span class="string">'y'</span>)</span><br><span class="line">        );</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Sentence(words);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">LetterComposite <span class="title">messageFromElves</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        List&lt;Word&gt; words = List.of(</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'M'</span>, <span class="string">'u'</span>, <span class="string">'c'</span>, <span class="string">'h'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'w'</span>, <span class="string">'i'</span>, <span class="string">'n'</span>, <span class="string">'d'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'p'</span>, <span class="string">'o'</span>, <span class="string">'u'</span>, <span class="string">'r'</span>, <span class="string">'s'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'f'</span>, <span class="string">'r'</span>, <span class="string">'o'</span>, <span class="string">'m'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'y'</span>, <span class="string">'o'</span>, <span class="string">'u'</span>, <span class="string">'r'</span>),</span><br><span class="line">                <span class="keyword">new</span> Word(<span class="string">'m'</span>, <span class="string">'o'</span>, <span class="string">'u'</span>, <span class="string">'t'</span>, <span class="string">'h'</span>)</span><br><span class="line">        );</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Sentence(words);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><a href="">示例代码</a></p>
+</blockquote>
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/composite_demo.png" class="">
+
+<img src="/blog/%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/composite.png" class="">
+
+<p>类图中主要包含以下角色：</p>
+<p>抽象构件角色（<code>Component</code>）：它可以是接口或抽象类，为叶子构件和容器构件对象声明接口，在该角色中可以包含所有子类共有行为的声明和实现。在抽象构件中定义了访问及管理它的子构件的方法，如增加子构件、删除子构件、获取子构件等。<br>叶子构件角色（<code>Leaf</code>）：它在组合结构中表示叶子节点对象，叶子节点没有子节点，它实现了在抽象构件中定义的行为。对于那些访问及管理子构件的方法，可以通过抛出异常等方式进行处理。<br>容器构件角色（<code>Composite</code>）：它在组合结构中表示容器节点对象，容器节点包含子节点，其子节点可以是叶子节点，也可以是容器节点，它提供一个集合用于存储子节点，实现了在抽象构件中定义的行为，包括那些访问及管理子构件的方法，在其业务方法中可以递归调用其子节点的业务方法。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+        <category>组合模式</category>
+      </categories>
+      <tags>
+        <tag>design patterns</tag>
+        <tag>gof</tag>
+        <tag>structural</tag>
+        <tag>composite</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>原型模式</title>
+    <url>/blog/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F.html</url>
+    <content><![CDATA[<h2 id="原型模式"><a href="#原型模式" class="headerlink" title="原型模式"></a>原型模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>通过复制现有的实例来创建新的实例，无需知道相应类的信息。</p>
+<h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
+<li>某些结构复杂的对象的创建工作，由于需求的变化，这些对象经常面临着剧烈的变化，但是他们却拥有比较稳定一致的接口。</li>
+<li>细胞分裂</li>
+<li>物种克隆</li>
+<li>……</li>
+</ul>
+<a id="more"></a>
+
+<h3 id="经典案例"><a href="#经典案例" class="headerlink" title="经典案例"></a>经典案例</h3><ul>
+<li><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#clone--" target="_blank" rel="noopener">java.lang.Object#clone()</a></li>
+<li><a href="https://commons.apache.org/proper/commons-beanutils/javadocs/v1.9.4/apidocs/org/apache/commons/beanutils/BeanUtils.html#cloneBean-java.lang.Object-" target="_blank" rel="noopener">Apache commons-beanutils BeanUtils#cloneBean(Object)</a></li>
+<li><a href="https://docs.spring.io/spring-framework/docs/5.3.29/javadoc-api/org/springframework/beans/factory/config/ConfigurableBeanFactory.html#SCOPE_PROTOTYPE" target="_blank" rel="noopener">Spring ConfigurableBeanFactory#SCOPE_PROTOTYPE</a></li>
+</ul>
+<h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 百宝箱包含一组魔法物品。有多种物品，例如戒指，药水和武器。可以使用藏宝箱提供的迭代器按类型浏览物品。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ShippingAddress</span> <span class="keyword">implements</span> <span class="title">Cloneable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String receiver;</span><br><span class="line">    <span class="keyword">private</span> String phone;</span><br><span class="line">    <span class="keyword">private</span> Address address;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> ShippingAddress <span class="title">clone</span><span class="params">()</span> <span class="keyword">throws</span> CloneNotSupportedException </span>&#123;</span><br><span class="line">        <span class="comment">// 浅拷贝</span></span><br><span class="line">        <span class="comment">// return (ShippingAddress) super.clone();</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 深拷贝</span></span><br><span class="line">        ShippingAddress res = (ShippingAddress) <span class="keyword">super</span>.clone();</span><br><span class="line">        res.address = res.address.clone(); <span class="comment">// 非基本数据类型属性也需拷贝</span></span><br><span class="line">        <span class="keyword">return</span> res;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Data</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Address</span> <span class="keyword">implements</span> <span class="title">Cloneable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> String country;</span><br><span class="line">        <span class="keyword">private</span> String province;</span><br><span class="line">        <span class="keyword">private</span> String city;</span><br><span class="line">        <span class="keyword">private</span> String detail;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">protected</span> Address <span class="title">clone</span><span class="params">()</span> <span class="keyword">throws</span> CloneNotSupportedException </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> (Address) <span class="keyword">super</span>.clone();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><a href="">示例代码</a></p>
+</blockquote>
+<h4 id="浅拷贝"><a href="#浅拷贝" class="headerlink" title="浅拷贝"></a>浅拷贝</h4><p>创建一个新对象，新对象的属性和原来对象完全相同，对于非基本数据类型属性，仍指向原有属性所指向对象的内存地址。</p>
+<h4 id="深拷贝"><a href="#深拷贝" class="headerlink" title="深拷贝"></a>深拷贝</h4><p>创建一个新对象，属性中引用的其他对象也会被克隆，不再指向原有对象地址。</p>
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/prototype.png" class="">
+
+<p>类图中主要包含以下角色：</p>
+<p>抽象原型角色（<code>Prototype</code>）：声明克隆方法的接口，来说明它有被克隆功能。<br>具体原型角色（<code>ConcretePrototype</code>）：实现在抽象原型中声明的克隆方法，在克隆方法中返回自己的一个克隆对象。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+        <category>原型模式</category>
+      </categories>
+      <tags>
+        <tag>design patterns</tag>
+        <tag>gof</tag>
+        <tag>creational</tag>
+        <tag>prototype</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>观察者模式</title>
     <url>/blog/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F.html</url>
     <content><![CDATA[<h2 id="观察者模式"><a href="#观察者模式" class="headerlink" title="观察者模式"></a>观察者模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>当一个对象改变状态时，所有依赖它的对象都将自动通知或更新。</p>
@@ -30,7 +108,7 @@
 <img src="/blog/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/observer.png" class="">
 
 <p>类图中主要包含以下角色：</p>
-<p>抽象主题角色（Subject）：提供一个用于保存观察者对象的容器，可以增加、删除观察者以及通知所有观察者的方法。<br>具体主题角色（ConcreteSubject）：负责定义它自己的业务逻辑，并在主题内部状态改变时，通知它的所有观察者对象。<br>抽象观察者角色（Observer）：它是一个抽象类或接口，包含一个响应方法用来在订阅主题发生更改时做出对应反应。<br>具体观察者角色（ConcreteObserver）：实现抽象观察者中定义的抽象响应方法，以便在订阅主题发生更改时及时做出自己对应的反应。</p>
+<p>抽象主题角色（<code>Subject</code>）：提供一个用于保存观察者对象的容器，可以增加、删除观察者以及通知所有观察者的方法。<br>具体主题角色（<code>ConcreteSubject</code>）：负责定义它自己的业务逻辑，并在主题内部状态改变时，通知它的所有观察者对象。<br>抽象观察者角色（<code>Observer</code>）：它是一个抽象类或接口，包含一个响应方法用来在订阅主题发生更改时做出对应反应。<br>具体观察者角色（<code>ConcreteObserver</code>）：实现抽象观察者中定义的抽象响应方法，以便在订阅主题发生更改时及时做出自己对应的反应。</p>
 ]]></content>
       <categories>
         <category>设计模式</category>
@@ -73,7 +151,7 @@
 <img src="/blog/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/decorator.png" class="">
 
 <p>装饰器模式主要包含以下角色：</p>
-<p>抽象构件角色（Component）：定义一个抽象接口以规范准备接收附加职责的对象。<br>具体构件角色（ConcreteComponent）：实现抽象构件，将要通过装饰角色为其添加一些职责。<br>抽象装饰角色（Decorator）：继承抽象构件，并包含具体构件的实例，可以通过其子类扩展具体构件的功能。<br>具体装饰角色（ConcreteDecorator）：实现抽象装饰的相关方法，并给具体构件对象添加附加的职责。</p>
+<p>抽象构件角色（<code>Component</code>）：定义一个抽象接口以规范准备接收附加职责的对象。<br>具体构件角色（<code>ConcreteComponent</code>）：实现抽象构件，将要通过装饰角色为其添加一些职责。<br>抽象装饰角色（<code>Decorator</code>）：继承抽象构件，并包含具体构件的实例，可以通过其子类扩展具体构件的功能。<br>具体装饰角色（<code>ConcreteDecorator</code>）：实现抽象装饰的相关方法，并给具体构件对象添加附加的职责。</p>
 ]]></content>
       <categories>
         <category>设计模式</category>
@@ -192,7 +270,7 @@
 <img src="/blog/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/state.png" class="">
 
 <p>类图中主要包含三个核心角色：</p>
-<p>上下文角色（Context）：定义客户端需要的接口，维护一个当前状态，并将与状态相关的操作委托给当前状态对象来处理。<br>抽象状态角色（State）：定义一个接口，用以封装上下文对象中的特定状态所对应的行为。<br>具体状态角色（ConcreteState）：实现抽象状态所对应的行为，并且在需要的情况下进行状态切换。</p>
+<p>上下文角色（<code>Context</code>）：定义客户端需要的接口，维护一个当前状态，并将与状态相关的操作委托给当前状态对象来处理。<br>抽象状态角色（<code>State</code>）：定义一个接口，用以封装上下文对象中的特定状态所对应的行为。<br>具体状态角色（<code>ConcreteState</code>）：实现抽象状态所对应的行为，并且在需要的情况下进行状态切换。</p>
 ]]></content>
       <categories>
         <category>设计模式</category>
@@ -227,10 +305,12 @@
 <blockquote>
 <p><a href="">示例代码</a></p>
 </blockquote>
-<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/strategy.png" class="">
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/strategy_demo.png" class="">
+
+<img src="/blog/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/strategy.png" class="">
 
 <p>类图中主要包含三个核心角色：</p>
-<p>抽象策略角色（DragonSlayingStrategy）：规定策略或算法的行为。<br>具体策略角色（MeleeStrategy/ProjectileStrategy/SpellStrategy）：具体的策略或算法实现。<br>上下文角色（DragonSlayer）：用来操作策略的上下文，屏蔽高层模块(客户端)对策略、算法的直接访问，封装可能存在的变化。</p>
+<p>抽象策略角色（<code>Strategy</code>）：规定策略或算法的行为。<br>具体策略角色（<code>ConcreteStrategy</code>）：具体的策略或算法实现。<br>上下文角色（<code>Context</code>）：用来操作策略的上下文，屏蔽高层模块(客户端)对策略、算法的直接访问，封装可能存在的变化。</p>
 ]]></content>
       <categories>
         <category>设计模式</category>
@@ -299,10 +379,12 @@
 </ol>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WizardTowerMethodInterceptor</span> <span class="keyword">implements</span> <span class="title">MethodInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> NUM_WIZARDS_ALLOWED = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> numWizards;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WizardTowerMethodInterceptor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">intercept</span><span class="params">(Object obj, Method method, Object[] args, MethodProxy methodProxy)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (numWizards &lt; NUM_WIZARDS_ALLOWED) &#123;</span><br><span class="line">            Object result = methodProxy.invokeSuper(obj, args);</span><br><span class="line">            numWizards++;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Wizard wizard = (Wizard) args[<span class="number">0</span>];</span><br><span class="line">            System.out.println(wizard + <span class="string">" is not allowed to enter!"</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Enhancer enhancer = <span class="keyword">new</span> Enhancer();</span><br><span class="line">        enhancer.setSuperclass(IvoryTower<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        enhancer.setCallback(<span class="keyword">new</span> WizardTowerMethodInterceptor()); <span class="comment">// 会拦截IvoryTower中的所有方法</span></span><br><span class="line">        IvoryTower tower = (IvoryTower) enhancer.create();</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Red wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"White wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Black wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Green wizard"</span>));</span><br><span class="line">        tower.enter(<span class="keyword">new</span> Wizard(<span class="string">"Brown wizard"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy.png" class="">
+<h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><img src="/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy_demo.png" class="">
+
+<img src="/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy.png" class="">
 
 <p>类图中主要包含三个核心角色：</p>
-<p>抽象对象角色（WizardTower）：声明了目标对象和代理对象的共同接口，这样依赖在任何可以使用目标对象的地方都可以使用代理对象。<br>目标对象角色（IvoryTower）：定义了代理对象所代表的目标对象。<br>代理对象角色（WizardTowerProxy）：代理对象内部含有目标对象的引用，从而可以在任何时候操作目标对象；代理对象提供一个与目标对象相同的接口，以便可以在任何时候替代目标对象。代理对象通常在客户端调用传递给目标对象之前或者之后执行某个操作，而不是单纯的将调用传递给目标对象。</p>
+<p>抽象对象角色（<code>AbstractObject</code>）：声明了目标对象和代理对象的共同接口，这样依赖在任何可以使用目标对象的地方都可以使用代理对象。<br>目标对象角色（<code>RealObject</code>）：定义了代理对象所代表的目标对象。<br>代理对象角色（<code>ProxyObject</code>）：代理对象内部含有目标对象的引用，从而可以在任何时候操作目标对象；代理对象提供一个与目标对象相同的接口，以便可以在任何时候替代目标对象。代理对象通常在客户端调用传递给目标对象之前或者之后执行某个操作，而不是单纯的将调用传递给目标对象。</p>
 ]]></content>
       <categories>
         <category>设计模式</category>
@@ -339,10 +421,10 @@
 
 <p>类图中主要包含四个核心角色：</p>
 <ul>
-<li>抽象的享元角色（FlyWeight）：它是产品的抽象类，同时定义出对象的内部状态（不会随着环境的改变而改变的可共享部分）和外部状态（随环境改变而改变的不可以共享的部分）。</li>
-<li>具体的享元角色（ConcreteFlyWeight）：是具体的产品类，实现抽象角色定义的相关业务。</li>
-<li>不可共享角色（UnsharedConcreteFlyWeight）：不能被共享的子类可设计成不可共享角色。</li>
-<li>享元工厂类（FlyweightFactory）：负责创建和管理享元角色，当使用者创建享元对象时，会由享元工厂先从工厂中获取，若存在则对外提供，不存在则由工厂创建。</li>
+<li>抽象的享元角色（<code>FlyWeight</code>）：它是产品的抽象类，同时定义出对象的内部状态（不会随着环境的改变而改变的可共享部分）和外部状态（随环境改变而改变的不可以共享的部分）。</li>
+<li>具体的享元角色（<code>ConcreteFlyWeight</code>）：是具体的产品类，实现抽象角色定义的相关业务。</li>
+<li>不可共享角色（<code>UnsharedConcreteFlyWeight</code>）：不能被共享的子类可设计成不可共享角色。</li>
+<li>享元工厂类（<code>FlyweightFactory</code>）：负责创建和管理享元角色，当使用者创建享元对象时，会由享元工厂先从工厂中获取，若存在则对外提供，不存在则由工厂创建。</li>
 </ul>
 ]]></content>
       <categories>
@@ -545,6 +627,7 @@
 <li>工厂方法：创建单个产品实例。</li>
 <li>抽象工厂：创建一族产品实例。</li>
 <li>建造者：允许创建不同口味的对象以避免构造器污染。</li>
+<li>原型：通过复制现有的实例来创建新的实例，无需知道相应类的信息。</li>
 <li>抽象文档：为对象添加类型安全的动态属性。</li>
 <li>享元：用共享技术来有效地支持大量细粒度对象的复用。</li>
 <li>代理：代理某个对象的行为和方法，添加自定义功能。</li>
