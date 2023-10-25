@@ -1,7 +1,7 @@
 ---
 title: Hadoop集群搭建
 categories:
-  - BigData
+  - 大数据
 tags:
   - hadoop
   - hdfs
