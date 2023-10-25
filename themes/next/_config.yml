@@ -642,7 +642,7 @@ livere_uid: # <your_uid>
 # Gitalk
 # For more information: https://gitalk.github.io, https://github.com/gitalk/gitalk
 gitalk:
-  enable: true
+  enable: false
   github_id: xiaojiaC # GitHub repo owner
   repo: xiaojiac.github.io # Repository name to store issues
   client_id: ca04a690fc7d8704b245 # GitHub Application Client ID
