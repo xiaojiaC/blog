@@ -20,7 +20,7 @@
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-2}},"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-2}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
   <meta name="description" content="状态模式意图允许对象在内部状态改变时改变它的行为，这个对象看起来像是修改了它的类。 适用场景 对象的行为取决于它的状态，并且它必须在运行时根据状态更改其行为。 根据对象状态的不同，操作有大量的条件语句。可用该模式把条件语句的分支分别放入单独的类中。这样你就可以将对象的状态视为独立的对象，该对象可以独立于其他对象而变化。 ……">
@@ -33,7 +33,7 @@
 <meta property="og:image" content="http://xiaojiac.github.io/blog/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/state_demo.png">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/state.png">
 <meta property="article:published_time" content="2023-10-15T11:23:06.000Z">
-<meta property="article:modified_time" content="2023-10-19T13:02:07.224Z">
+<meta property="article:modified_time" content="2023-10-25T14:47:11.213Z">
 <meta property="article:author" content="xiaojiaC">
 <meta property="article:tag" content="design patterns">
 <meta property="article:tag" content="gof">
@@ -364,7 +364,6 @@
 
           </div>
           
-    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -427,20 +426,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/blog/archives/">
         
-          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-count">25</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/blog/categories/">
           
-        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-count">24</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/blog/tags/">
           
-        <span class="site-state-item-count">32</span>
+        <span class="site-state-item-count">34</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -590,26 +589,6 @@
 
 
 
-
-<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
-
-<script>
-NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
-    var gitalk = new Gitalk({
-      clientID    : 'ca04a690fc7d8704b245',
-      clientSecret: '3a2323e1d434c5ddc65075f18bbacc09d20a0dfb',
-      repo        : 'xiaojiac.github.io',
-      owner       : 'xiaojiaC',
-      admin       : ['xiaojiaC'],
-      id          : '9c7703a6d428cc2726564e06862a4125',
-        language: 'zh-CN',
-      distractionFreeMode: true
-    });
-    gitalk.render('gitalk-container');
-  }, window.Gitalk);
-});
-</script>
 
 </body>
 </html>

@@ -20,20 +20,20 @@
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-2}},"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-2}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="代理模式意图为另一个对象提供代理以控制对其的访问。 适用场景 需要在不修改原代码的基础上，扩展和增强实现 需要隐藏部分实现过程和细节，对象的访问控制 事务代理 非侵入式日志监听 ……">
+  <meta name="description" content="代理模式意图为另一个对象提供代理以控制对其的访问。 适用场景 需要在不修改原代码的基础上，扩展和增强实现。  需要隐藏部分实现过程和细节，对象的访问控制。  ……">
 <meta property="og:type" content="article">
 <meta property="og:title" content="代理模式">
 <meta property="og:url" content="http://xiaojiac.github.io/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F.html">
 <meta property="og:site_name" content="Oh_null&#39;s blog">
-<meta property="og:description" content="代理模式意图为另一个对象提供代理以控制对其的访问。 适用场景 需要在不修改原代码的基础上，扩展和增强实现 需要隐藏部分实现过程和细节，对象的访问控制 事务代理 非侵入式日志监听 ……">
+<meta property="og:description" content="代理模式意图为另一个对象提供代理以控制对其的访问。 适用场景 需要在不修改原代码的基础上，扩展和增强实现。  需要隐藏部分实现过程和细节，对象的访问控制。  ……">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy_demo.png">
 <meta property="og:image" content="http://xiaojiac.github.io/blog/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/proxy.png">
 <meta property="article:published_time" content="2023-09-16T13:11:11.000Z">
-<meta property="article:modified_time" content="2023-10-19T13:02:07.216Z">
+<meta property="article:modified_time" content="2023-10-25T14:47:11.205Z">
 <meta property="article:author" content="xiaojiaC">
 <meta property="article:tag" content="design patterns">
 <meta property="article:tag" content="gof">
@@ -273,11 +273,12 @@
       
         <h2 id="代理模式"><a href="#代理模式" class="headerlink" title="代理模式"></a>代理模式</h2><h3 id="意图"><a href="#意图" class="headerlink" title="意图"></a>意图</h3><p>为另一个对象提供代理以控制对其的访问。</p>
 <h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><ul>
-<li>需要在不修改原代码的基础上，扩展和增强实现</li>
-<li>需要隐藏部分实现过程和细节，对象的访问控制</li>
-<li>事务代理</li>
-<li>非侵入式日志监听</li>
-<li>……</li>
+<li><p>需要在不修改原代码的基础上，扩展和增强实现。</p>
+</li>
+<li><p>需要隐藏部分实现过程和细节，对象的访问控制。</p>
+</li>
+<li><p>……</p>
+</li>
 </ul>
 <a id="more"></a>
 
@@ -286,6 +287,8 @@
 <li><a href="https://cglib.sourceforge.net/apidocs/net/sf/cglib/proxy/Enhancer.html" target="_blank" rel="noopener">cglib dynamic proxy</a></li>
 <li><a href="https://commons.apache.org/proper/commons-proxy/" target="_blank" rel="noopener">apache commons proxy</a></li>
 <li><a href="https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html" target="_blank" rel="noopener">mockito</a>以及<a href="https://easymock.org/user-guide.html" target="_blank" rel="noopener">easymock</a>、<a href="https://powermock.github.io/" target="_blank" rel="noopener">powermock</a>等 mock 框架</li>
+<li>事务代理</li>
+<li>非侵入式日志监听</li>
 </ul>
 <h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 想象有一个塔，当地的巫师去那里学习他们的法术。通过代理象牙塔进入功能，以此来保证只有前3个巫师才能进入。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">IvoryTower</span> <span class="keyword">implements</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span> </span>&#123;</span><br><span class="line">        System.out.println(wizard + <span class="string">" enters the tower."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WizardTowerProxy</span> <span class="keyword">implements</span> <span class="title">WizardTower</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> NUM_WIZARDS_ALLOWED = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> numWizards;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> WizardTower tower;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WizardTowerProxy</span><span class="params">(WizardTower tower)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.tower = tower;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">enter</span><span class="params">(Wizard wizard)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (numWizards &lt; NUM_WIZARDS_ALLOWED) &#123;</span><br><span class="line">            tower.enter(wizard);</span><br><span class="line">            numWizards++;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            System.out.println(wizard + <span class="string">" is not allowed to enter!"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -401,7 +404,6 @@
 
           </div>
           
-    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -464,20 +466,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/blog/archives/">
         
-          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-count">25</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/blog/categories/">
           
-        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-count">24</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/blog/tags/">
           
-        <span class="site-state-item-count">32</span>
+        <span class="site-state-item-count">34</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -627,26 +629,6 @@
 
 
 
-
-<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
-
-<script>
-NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
-    var gitalk = new Gitalk({
-      clientID    : 'ca04a690fc7d8704b245',
-      clientSecret: '3a2323e1d434c5ddc65075f18bbacc09d20a0dfb',
-      repo        : 'xiaojiac.github.io',
-      owner       : 'xiaojiaC',
-      admin       : ['xiaojiaC'],
-      id          : '7027e0861f4a6c91e5b53b726f8057ee',
-        language: 'zh-CN',
-      distractionFreeMode: true
-    });
-    gitalk.render('gitalk-container');
-  }, window.Gitalk);
-});
-</script>
 
 </body>
 </html>
