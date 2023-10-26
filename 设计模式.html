@@ -31,7 +31,7 @@
 <meta property="og:description" content="意图降低对象之间的耦合，增加程序的可复用性、可扩展性、可靠性和可维护性。              设计原则   设计原则 含义 目的    开闭原则 对扩展开放，对修改关闭 降低维护带来的新风险   单一职责原则 一个类应该只有一个引起变化的原因 便于理解，提高代码的可读性   接口隔离原则 一个接口只干一件事，接口要精简单一 功能解耦，高聚合低耦合   依赖倒置原则">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2023-09-03T11:00:01.000Z">
-<meta property="article:modified_time" content="2023-10-25T14:48:48.329Z">
+<meta property="article:modified_time" content="2023-10-26T14:16:39.913Z">
 <meta property="article:author" content="xiaojiaC">
 <meta property="article:tag" content="design patterns">
 <meta name="twitter:card" content="summary">
@@ -316,7 +316,7 @@
 <li><a href="/blog/单例模式.html">单例</a>：确保某一个类只有一个实例存在。</li>
 <li><a href="/blog/工厂模式.html">工厂方法</a>：创建单个产品实例。</li>
 <li><a href="/blog/工厂模式.html">抽象工厂</a>：创建一族产品实例。</li>
-<li>[建造者](/blog/建造者模式.html：允许创建不同口味的对象以避免构造器污染。</li>
+<li><a href="/blog/建造者模式.html">建造者</a>：允许创建不同口味的对象以避免构造器污染。</li>
 <li><a href="/blog/原型模式.html">原型</a>：通过复制现有的实例来创建新的实例，无需知道相应类的信息。</li>
 <li></li>
 <li><a href="/blog/适配器模式.html">适配器</a>：将一个接口转换成另一个客户所期望的接口。</li>
@@ -335,7 +335,7 @@
 <li><a href="/blog/命令模式.html">命令</a>：对请求进行封装，将命令的发出和命令的执行解耦开。</li>
 <li><a href="/blog/状态模式.html">状态</a>：允许对象在内部状态改变时改变它的行为。（与策略模式类图相似，区别在于：策略模式会控制对象使用什么策略，而状态模式会自动改变对象状态流转。）</li>
 <li>备忘录：在不破坏封装性的前提下，捕获和保存一个对象的内部状态，以便在需要时恢复该对象到原先的状态。</li>
-<li>中介者：定义一个中介角色来封装一系列对象之间的交互，使原有对象之间的耦合松散，且可以独立地改变它们之间的交互。</li>
+<li><a href="/blog/中介者模式.html">中介者</a>：定义一个中介角色来封装一系列对象之间的交互，使原有对象之间的耦合松散，且可以独立地改变它们之间的交互。</li>
 <li>解释器：给定一个语言，定义它的文法的一种表示，并定义一个解释器，使用该解释器来解释语言中的句子。</li>
 <li><a href="/blog/访问者模式.html">访问者</a>：允许将功能添加到现有的类层次结构中，而无需修改层次结构。</li>
 <li></li>
@@ -486,20 +486,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/blog/archives/">
         
-          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-count">26</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/blog/categories/">
           
-        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-count">25</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/blog/tags/">
           
-        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-count">35</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
