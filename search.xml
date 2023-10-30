@@ -1026,7 +1026,7 @@
 <li>回调：传递给调用者的方法，它将在定义的时刻被调用。</li>
 </ul>
 <blockquote>
-<p><a href="https://refactoringguru.cn/design-patterns" target="_blank" rel="noopener">design-patterns</a><br><a href="https://java-design-patterns.com/patterns/" target="_blank" rel="noopener">java-design-patterns</a></p>
+<p><a href="https://springframework.guru/gang-of-four-design-patterns/" target="_blank" rel="noopener">gof design-patterns</a><br><a href="https://refactoringguru.cn/design-patterns" target="_blank" rel="noopener">design-patterns</a><br><a href="https://java-design-patterns.com/patterns/" target="_blank" rel="noopener">java-design-patterns</a></p>
 </blockquote>
 <h3 id="UML-类图"><a href="#UML-类图" class="headerlink" title="UML 类图"></a>UML 类图</h3><ul>
 <li><code>o--</code>: 聚合，整体与局部关系，局部可以脱离整体存在，具有各自的生命周期。表示 has-a（实例变量），例如公司与员工 <code>Company o-- Employee</code></li>
