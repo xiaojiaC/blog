@@ -17,6 +17,8 @@ tags:
 
 我们先从`getBean`源码入手，熟悉下 Bean 创建过程（源码仅贴相关部分）。
 
+<!-- more -->
+
 ```java org.springframework.beans.factory.support.AbstractBeanFactory.java
 public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory {
 
@@ -330,9 +332,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 }
 ```
 
-光看源码有点抽象，下面我们通过一个示例来加深理解。
+光看源码有点抽象，下面我们通过一个示例（普通单例 Bean 间循环依赖）来加深理解。
 
-### 普通单例 Bean 间循环依赖
+### 示例代码
 
 新建 SpringBoot 项目，`pom.xml`引入如下依赖：
 
