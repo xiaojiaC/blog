@@ -12,7 +12,7 @@ tags:
 
 ### 类型概念
 
-在 JDK1.5 之前所有的原始类型都通过字节码文件类`Class`进行抽象。`Class`类的一个具体对象就代表一个指定的原始类型。从 JDK1.5 加入了泛型类，扩充了数据类型，在 _原始类型_ 基础上扩充了 _类型变量_、_通配符类型_、_参数化类型_、_泛型数组类型_。`Type`是 Java 语言中所有类型（`Class`）的公共父接口。
+在 JDK1.5 之前所有的原始类型都通过字节码文件类`Class`进行抽象。`Class`类的一个具体对象就代表一个指定的原始类型。从 JDK1.5 加入了泛型类，扩充了数据类型，在 **原始类型** 基础上扩充了 **类型变量**、**通配符类型**、**参数化类型**、**泛型数组类型**。`Type`是 Java 语言中所有类型（`Class`）的公共父接口。
 
 {% asset_img Type.png %}
 
@@ -182,29 +182,29 @@ public class GenericArrayTypeTest<T> {
 ```java
 public class ResolvableType implements Serializable {
 
-	// 根据原始类型Class创建。使用完整的泛型类型信息进行可分配性检查，例如：ResolvableType.forClass(MyArrayList.class)。
-	public static ResolvableType forClass(@Nullable Class<?> clazz);
+    // 根据原始类型Class创建。使用完整的泛型类型信息进行可分配性检查，例如：ResolvableType.forClass(MyArrayList.class)。
+    public static ResolvableType forClass(@Nullable Class<?> clazz);
 
     // 根据原始类型信息创建。仅对原始类进行可分配性检查（类似于Class.isAssignableFrom）它用作包装器，例如：ResolvableType.forRawClass(List.class)
-	public static ResolvableType forRawClass(@Nullable Class<?> clazz);
+    public static ResolvableType forRawClass(@Nullable Class<?> clazz);
 
-	// 根据某一种类型创建。
-	public static ResolvableType forType(@Nullable Type type);
+    // 根据某一种类型创建。
+    public static ResolvableType forType(@Nullable Type type);
 
-	// 根据成员变量创建
-	public static ResolvableType forField(Field field);
+    // 根据成员变量创建
+    public static ResolvableType forField(Field field);
 
-	// 根据构造器参数创建
-	public static ResolvableType forConstructorParameter(Constructor<?> constructor, int parameterIndex);
+    // 根据构造器参数创建
+    public static ResolvableType forConstructorParameter(Constructor<?> constructor, int parameterIndex);
 
-	// 根据实例创建。该实例不传递泛型信息，但如果它实现了ResolvableTypeProvider，则可以使用更精确的ResolvableType
-	public static ResolvableType forInstance(Object instance);
+    // 根据实例创建。该实例不传递泛型信息，但如果它实现了ResolvableTypeProvider，则可以使用更精确的ResolvableType
+    public static ResolvableType forInstance(Object instance);
 
-	// 根据方法参数创建
-	public static ResolvableType forMethodParameter(Method method, int parameterIndex);
+    // 根据方法参数创建
+    public static ResolvableType forMethodParameter(Method method, int parameterIndex);
 
-	// 根据方法的返回值创建
-	public static ResolvableType forMethodReturnType(Method method);
+    // 根据方法的返回值创建
+    public static ResolvableType forMethodReturnType(Method method);
 
 }
 ```
@@ -216,55 +216,55 @@ ResolvableType 定义了一些方法可以用于获取泛型信息，具体如�
 ```java
 public class ResolvableType implements Serializable {
 
-	// 获取泛型数组的元素类型
-	public ResolvableType getComponentType();
+    // 获取泛型数组的元素类型
+    public ResolvableType getComponentType();
 
     // 获取类型继承的直接父类型
-	public ResolvableType getSuperType();
+    public ResolvableType getSuperType();
 
     // 获取类型实现的直接接口类型
-	public ResolvableType[] getInterfaces();
+    public ResolvableType[] getInterfaces();
 
     // 获取底层Java Class原始类型
-	public Class<?> getRawClass();
+    public Class<?> getRawClass();
 
-	// 获取底层Java Type类型
-	public Type getType();
+    // 获取底层Java Type类型
+    public Type getType();
 
-	// 获取泛型的实际类型，索引位置从0开始
-	// 例如：给定类型 Map<String, List<Integer>>，getGeneric(0)将得到String；getGeneric(1, 0)将得到Integer
-	public ResolvableType getGeneric(@Nullable int... indexes);
-	public ResolvableType[] getGenerics();
+    // 获取泛型的实际类型，索引位置从0开始
+    // 例如：给定类型 Map<String, List<Integer>>，getGeneric(0)将得到String；getGeneric(1, 0)将得到Integer
+    public ResolvableType getGeneric(@Nullable int... indexes);
+    public ResolvableType[] getGenerics();
 
-	// 获取指定嵌套级别的类型，嵌套级别从1开始。
+    // 获取指定嵌套级别的类型，嵌套级别从1开始。
     // 嵌套级别是指应该返回的具体泛型参数。嵌套级别为1表示此类型；为2表示第一个嵌套泛型；为3表示第二个；以此类推
     // 例如：给定类型 List<Set<Integer>>，级别1指的是 List，级别2指的是 Set，级别3指的是 Integer。
-	public ResolvableType getNested(int nestingLevel);
+    public ResolvableType getNested(int nestingLevel);
     // typeIndexesPerLevel Map可用于引用给定级别的特定泛型。
     // 例如：给定Map<K,V> 索引0表示K；而1表示V；如果参数Map不包含特定级别的值，则将使用最后一个泛型类型（例如V）。
-	// 例如：给定类型 Map<String, List<Integer>>， getNested(2, {2, 0})将得到String；getNested(2, {2, 1})将得到List<Integer>；getNested(3, {3, 0})将得到Integer
-	public ResolvableType getNested(int nestingLevel, @Nullable Map<Integer, Integer> typeIndexesPerLevel);
+    // 例如：给定类型 Map<String, List<Integer>>， getNested(2, {2, 0})将得到String；getNested(2, {2, 1})将得到List<Integer>；getNested(3, {3, 0})将得到Integer
+    public ResolvableType getNested(int nestingLevel, @Nullable Map<Integer, Integer> typeIndexesPerLevel);
 
-	// 当前实例是否包含泛型参数
-	public boolean hasGenerics();
+    // 当前实例是否包含泛型参数
+    public boolean hasGenerics();
 
-	// 当前实例是否为数组
-	public boolean isArray();
+    // 当前实例是否为数组
+    public boolean isArray();
 
-	// 当前实例是否为给定参数的类型或父类型
-	public boolean isAssignableFrom(Class<?> other);
-	public boolean isAssignableFrom(ResolvableType other);
+    // 当前实例是否为给定参数的类型或父类型
+    public boolean isAssignableFrom(Class<?> other);
+    public boolean isAssignableFrom(ResolvableType other);
 
-	// 将此类型解析为Class，如果无法解析该类型，则返回null。如果直接解析失败，此方法将考虑 TypeVariables 和 WildcardTypes 的边界；但是Object.class 的边界将被忽略。
-	public Class<?> resolve();
+    // 将此类型解析为Class，如果无法解析该类型，则返回null。如果直接解析失败，此方法将考虑 TypeVariables 和 WildcardTypes 的边界；但是Object.class 的边界将被忽略。
+    public Class<?> resolve();
     // 将特定泛型参数解析为Class
-	public Class<?> resolveGeneric(int... indexes)
+    public Class<?> resolveGeneric(int... indexes)
 }
 ```
 
 #### 实现分析
 
-基于以下示例，对`ResolvableType#getNested`方法进行分析，了解其实现后即类通其中大多数方法的实现。
+基于以下示例，对`ResolvableType`解析构造过程进行分析，了解其实现后即类通其中大多数方法的实现。
 
 ```java
 public class ResolvableTypeTest {
@@ -302,63 +302,63 @@ public class ResolvableType implements Serializable {
                 new ConcurrentReferenceHashMap<>(256);
 
     private ResolvableType(Type type, @Nullable TypeProvider typeProvider, @Nullable VariableResolver variableResolver) {
-		this.type = type;
-		this.typeProvider = typeProvider;
-		this.variableResolver = variableResolver;
-		this.componentType = null;
-		this.hash = calculateHashCode();  // 按以上属性计算hash
-		this.resolved = null;
-	}
+        this.type = type;
+        this.typeProvider = typeProvider;
+        this.variableResolver = variableResolver;
+        this.componentType = null;
+        this.hash = calculateHashCode();  // 按以上属性计算hash
+        this.resolved = null;
+    }
 
-	private ResolvableType(Type type, @Nullable TypeProvider typeProvider,
-			@Nullable VariableResolver variableResolver, @Nullable Integer hash) {
-		this.type = type;
-		this.typeProvider = typeProvider;
-		this.variableResolver = variableResolver;
-		this.componentType = null;
-		this.hash = hash;
-		this.resolved = resolveClass(); // 开始解决Class
-	}
+    private ResolvableType(Type type, @Nullable TypeProvider typeProvider,
+            @Nullable VariableResolver variableResolver, @Nullable Integer hash) {
+        this.type = type;
+        this.typeProvider = typeProvider;
+        this.variableResolver = variableResolver;
+        this.componentType = null;
+        this.hash = hash;
+        this.resolved = resolveClass(); // 开始解决Class
+    }
 
     private Class<?> resolveClass() {
-		if (this.type == EmptyType.INSTANCE) { // hacked的空类型直接返回null
-			return null;
-		}
-		if (this.type instanceof Class) { // Class类型直接返回
-			return (Class<?>) this.type;
-		}
-		if (this.type instanceof GenericArrayType) { // 泛型数组类型则解析数组元素类型后返回 元素数组类型
-			Class<?> resolvedComponent = getComponentType().resolve();
-			return (resolvedComponent != null ? Array.newInstance(resolvedComponent, 0).getClass() : null);
-		}
-		return resolveType().resolve(); // 其他则解决类型后返回
-	}
+        if (this.type == EmptyType.INSTANCE) { // hacked的空类型直接返回null
+            return null;
+        }
+        if (this.type instanceof Class) { // Class类型直接返回
+            return (Class<?>) this.type;
+        }
+        if (this.type instanceof GenericArrayType) { // 泛型数组类型则解析数组元素类型后返回 元素数组类型
+            Class<?> resolvedComponent = getComponentType().resolve();
+            return (resolvedComponent != null ? Array.newInstance(resolvedComponent, 0).getClass() : null);
+        }
+        return resolveType().resolve(); // 其他则解决类型后返回
+    }
 
     ResolvableType resolveType() {
-		if (this.type instanceof ParameterizedType) { // 参数化类型，获取声明该类型的原始类或接口类型的ResolvableType
-			return forType(((ParameterizedType) this.type).getRawType(), this.variableResolver);
-		}
-		if (this.type instanceof WildcardType) { // 通配符类型
-			Type resolved = resolveBounds(((WildcardType) this.type).getUpperBounds()); // 先获取上边界类型数组第一个元素类型
-			if (resolved == null) {
-				resolved = resolveBounds(((WildcardType) this.type).getLowerBounds()); // 再获取下边界类型数组第一个元素类型
-			}
-			return forType(resolved, this.variableResolver); // 获取边界类型的ResolvableType
-		}
-		if (this.type instanceof TypeVariable) { // 类型变量类型
-			TypeVariable<?> variable = (TypeVariable<?>) this.type;
-			// Try default variable resolution
-			if (this.variableResolver != null) {
-				ResolvableType resolved = this.variableResolver.resolveVariable(variable);
-				if (resolved != null) {
-					return resolved;
-				}
-			}
-			// Fallback to bounds
-			return forType(resolveBounds(variable.getBounds()), this.variableResolver); // 获取此类型变量的上边界类型数组第一个元素类型的ResolvableType
-		}
-		return NONE; // 空类型
-	}
+        if (this.type instanceof ParameterizedType) { // 参数化类型，获取声明该类型的原始类或接口类型的ResolvableType
+            return forType(((ParameterizedType) this.type).getRawType(), this.variableResolver);
+        }
+        if (this.type instanceof WildcardType) { // 通配符类型
+            Type resolved = resolveBounds(((WildcardType) this.type).getUpperBounds()); // 先获取上边界类型数组第一个元素类型
+            if (resolved == null) {
+                resolved = resolveBounds(((WildcardType) this.type).getLowerBounds()); // 再获取下边界类型数组第一个元素类型
+            }
+            return forType(resolved, this.variableResolver); // 获取边界类型的ResolvableType
+        }
+        if (this.type instanceof TypeVariable) { // 类型变量类型
+            TypeVariable<?> variable = (TypeVariable<?>) this.type;
+            // Try default variable resolution
+            if (this.variableResolver != null) {
+                ResolvableType resolved = this.variableResolver.resolveVariable(variable);
+                if (resolved != null) {
+                    return resolved;
+                }
+            }
+            // Fallback to bounds
+            return forType(resolveBounds(variable.getBounds()), this.variableResolver); // 获取此类型变量的上边界类型数组第一个元素类型的ResolvableType
+        }
+        return NONE; // 空类型
+    }
 
     public static ResolvableType forField(Field field) {
         Assert.notNull(field, "Field must not be null");
@@ -400,113 +400,113 @@ public class ResolvableType implements Serializable {
 ```java org.springframework.core.SerializableTypeWrapper
 final class SerializableTypeWrapper { // 见名知意
 
-	private static final Class<?>[] SUPPORTED_SERIALIZABLE_TYPES = {
-			GenericArrayType.class, ParameterizedType.class, TypeVariable.class, WildcardType.class};
+    private static final Class<?>[] SUPPORTED_SERIALIZABLE_TYPES = {
+            GenericArrayType.class, ParameterizedType.class, TypeVariable.class, WildcardType.class};
 
     ......
 
     static Type forTypeProvider(TypeProvider provider) {
-		Type providedType = provider.getType();
-		if (providedType == null || providedType instanceof Serializable) {
-			// 不需要可串行化的类型包装(例如 java.lang.Class)
-			return providedType;
-		}
-		if (GraalDetector.inImageCode() || !Serializable.class.isAssignableFrom(Class.class)) {
-			// Let's skip any wrapping attempts if types are generally not serializable in
-			// the current runtime environment (even java.lang.Class itself, e.g. on Graal)
-			return providedType;
-		}
+        Type providedType = provider.getType();
+        if (providedType == null || providedType instanceof Serializable) {
+            // 不需要可串行化的类型包装(例如 java.lang.Class)
+            return providedType;
+        }
+        if (GraalDetector.inImageCode() || !Serializable.class.isAssignableFrom(Class.class)) {
+            // Let's skip any wrapping attempts if types are generally not serializable in
+            // the current runtime environment (even java.lang.Class itself, e.g. on Graal)
+            return providedType;
+        }
 
-		// 获取给定TypeProvider的可串行化类型代理...
-		Type cached = cache.get(providedType);
-		if (cached != null) {
-			return cached;
-		}
-		for (Class<?> type : SUPPORTED_SERIALIZABLE_TYPES) {
-			if (type.isInstance(providedType)) {
-				ClassLoader classLoader = provider.getClass().getClassLoader();
-				Class<?>[] interfaces = new Class<?>[] {type, SerializableTypeProxy.class, Serializable.class};
+        // 获取给定TypeProvider的可串行化类型代理...
+        Type cached = cache.get(providedType);
+        if (cached != null) {
+            return cached;
+        }
+        for (Class<?> type : SUPPORTED_SERIALIZABLE_TYPES) {
+            if (type.isInstance(providedType)) {
+                ClassLoader classLoader = provider.getClass().getClassLoader();
+                Class<?>[] interfaces = new Class<?>[] {type, SerializableTypeProxy.class, Serializable.class};
                 // 生成类型代理，实现以上3个接口，对支持的序列化类型任何返回Type或Type[]的方法进行代理，统一返回ResolvableType
-				InvocationHandler handler = new TypeProxyInvocationHandler(provider);
-				cached = (Type) Proxy.newProxyInstance(classLoader, interfaces, handler);
-				cache.put(providedType, cached);
-				return cached;
-			}
-		}
-		throw new IllegalArgumentException("Unsupported Type class: " + providedType.getClass().getName());
-	}
+                InvocationHandler handler = new TypeProxyInvocationHandler(provider);
+                cached = (Type) Proxy.newProxyInstance(classLoader, interfaces, handler);
+                cache.put(providedType, cached);
+                return cached;
+            }
+        }
+        throw new IllegalArgumentException("Unsupported Type class: " + providedType.getClass().getName());
+    }
 
     interface SerializableTypeProxy {
 
         /**
         * 返回类型提供程序
         */
-		TypeProvider getTypeProvider();
-	}
+        TypeProvider getTypeProvider();
+    }
 
     interface TypeProvider extends Serializable {
 
-		/**
-		 * 返回（未被代理Serializable）的原始Type
-		 */
-		@Nullable
-		Type getType();
+        /**
+         * 返回（未被代理Serializable）的原始Type
+         */
+        @Nullable
+        Type getType();
 
-		/**
-		 * 返回类型的源，如果未知则返回 null
-		 */
-		@Nullable
-		default Object getSource() {
-			return null;
-		}
-	}
+        /**
+         * 返回类型的源，如果未知则返回 null
+         */
+        @Nullable
+        default Object getSource() {
+            return null;
+        }
+    }
 
     // 提供序列化支持并增强任何返回Type或Type[]的方法。
     private static class TypeProxyInvocationHandler implements InvocationHandler, Serializable {
 
-		private final TypeProvider provider;
+        private final TypeProvider provider;
 
-		public TypeProxyInvocationHandler(TypeProvider provider) {
-			this.provider = provider;
-		}
+        public TypeProxyInvocationHandler(TypeProvider provider) {
+            this.provider = provider;
+        }
 
-		@Override
-		@Nullable
-		public Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
-			if (method.getName().equals("equals") && args != null) {
-				Object other = args[0];
+        @Override
+        @Nullable
+        public Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
+            if (method.getName().equals("equals") && args != null) {
+                Object other = args[0];
                 // 其实就是看是否也是个代理，是的话先解包装后（((SerializableTypeProxy) type).getTypeProvider().getType()）再比较
-				if (other instanceof Type) {
-					other = unwrap((Type) other);
-				}
-				return ObjectUtils.nullSafeEquals(this.provider.getType(), other);
-			}
-			else if (method.getName().equals("hashCode")) {
-				return ObjectUtils.nullSafeHashCode(this.provider.getType());
-			}
-			else if (method.getName().equals("getTypeProvider")) {
-				return this.provider;
-			}
+                if (other instanceof Type) {
+                    other = unwrap((Type) other);
+                }
+                return ObjectUtils.nullSafeEquals(this.provider.getType(), other);
+            }
+            else if (method.getName().equals("hashCode")) {
+                return ObjectUtils.nullSafeHashCode(this.provider.getType());
+            }
+            else if (method.getName().equals("getTypeProvider")) {
+                return this.provider;
+            }
 
-			if (Type.class == method.getReturnType() && args == null) { // 无参方法，返回值为Type.class
-				return forTypeProvider(new MethodInvokeTypeProvider(this.provider, method, -1)); // 代理返回MethodInvokeTypeProvider类型
-			}
-			else if (Type[].class == method.getReturnType() && args == null) { // 无参方法，返回值为Type[].class
-				Type[] result = new Type[((Type[]) method.invoke(this.provider.getType())).length];
-				for (int i = 0; i < result.length; i++) {
-					result[i] = forTypeProvider(new MethodInvokeTypeProvider(this.provider, method, i));
-				}
-				return result;
-			}
+            if (Type.class == method.getReturnType() && args == null) { // 无参方法，返回值为Type.class
+                return forTypeProvider(new MethodInvokeTypeProvider(this.provider, method, -1)); // 代理返回MethodInvokeTypeProvider类型
+            }
+            else if (Type[].class == method.getReturnType() && args == null) { // 无参方法，返回值为Type[].class
+                Type[] result = new Type[((Type[]) method.invoke(this.provider.getType())).length];
+                for (int i = 0; i < result.length; i++) {
+                    result[i] = forTypeProvider(new MethodInvokeTypeProvider(this.provider, method, i));
+                }
+                return result;
+            }
 
-			try {
-				return method.invoke(this.provider.getType(), args); // 其他非代理方法则委托原类型执行
-			}
-			catch (InvocationTargetException ex) {
-				throw ex.getTargetException();
-			}
-		}
-	}
+            try {
+                return method.invoke(this.provider.getType(), args); // 其他非代理方法则委托原类型执行
+            }
+            catch (InvocationTargetException ex) {
+                throw ex.getTargetException();
+            }
+        }
+    }
 
      static class FieldTypeProvider implements TypeProvider {
 
@@ -546,61 +546,61 @@ final class SerializableTypeWrapper { // 见名知意
 
     static class MethodInvokeTypeProvider implements TypeProvider {
 
-		private final TypeProvider provider;
+        private final TypeProvider provider;
 
-		private final String methodName;
+        private final String methodName;
 
-		private final Class<?> declaringClass;
+        private final Class<?> declaringClass;
 
-		private final int index;
+        private final int index;
 
-		private transient Method method;
+        private transient Method method;
 
-		@Nullable
-		private transient volatile Object result;
+        @Nullable
+        private transient volatile Object result;
 
-		public MethodInvokeTypeProvider(TypeProvider provider, Method method, int index) {
-			this.provider = provider;
-			this.methodName = method.getName();
-			this.declaringClass = method.getDeclaringClass();
-			this.index = index;
-			this.method = method;
-		}
+        public MethodInvokeTypeProvider(TypeProvider provider, Method method, int index) {
+            this.provider = provider;
+            this.methodName = method.getName();
+            this.declaringClass = method.getDeclaringClass();
+            this.index = index;
+            this.method = method;
+        }
 
         // 比如：`ParameterizedType`的`Type getRawType()`方法，这里代理后返回的其实是`MethodInvokeTypeProvider`，该类型提供者`getType()`方法返回的才是之前的结果。
-		@Override
-		@Nullable
-		public Type getType() {
-			Object result = this.result;
-			if (result == null) {
-				// 对所提供类型的目标方法的惰性调用
-				result = ReflectionUtils.invokeMethod(this.method, this.provider.getType());
-				// 缓存结果以便进一步调用getType()
-				this.result = result;
-			}
-			return (result instanceof Type[] ? ((Type[]) result)[this.index] : (Type) result);
-		}
+        @Override
+        @Nullable
+        public Type getType() {
+            Object result = this.result;
+            if (result == null) {
+                // 对所提供类型的目标方法的惰性调用
+                result = ReflectionUtils.invokeMethod(this.method, this.provider.getType());
+                // 缓存结果以便进一步调用getType()
+                this.result = result;
+            }
+            return (result instanceof Type[] ? ((Type[]) result)[this.index] : (Type) result);
+        }
 
-		@Override
-		@Nullable
-		public Object getSource() {
-			return null;
-		}
+        @Override
+        @Nullable
+        public Object getSource() {
+            return null;
+        }
 
         // 支持从输入流中读取并反序列化该对象及method字段
-		private void readObject(ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
-			inputStream.defaultReadObject();
-			Method method = ReflectionUtils.findMethod(this.declaringClass, this.methodName);
-			if (method == null) {
-				throw new IllegalStateException("Cannot find method on deserialization: " + this.methodName);
-			}
-			if (method.getReturnType() != Type.class && method.getReturnType() != Type[].class) {
-				throw new IllegalStateException(
-						"Invalid return type on deserialized method - needs to be Type or Type[]: " + method);
-			}
-			this.method = method;
-		}
-	}
+        private void readObject(ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
+            inputStream.defaultReadObject();
+            Method method = ReflectionUtils.findMethod(this.declaringClass, this.methodName);
+            if (method == null) {
+                throw new IllegalStateException("Cannot find method on deserialization: " + this.methodName);
+            }
+            if (method.getReturnType() != Type.class && method.getReturnType() != Type[].class) {
+                throw new IllegalStateException(
+                        "Invalid return type on deserialized method - needs to be Type or Type[]: " + method);
+            }
+            this.method = method;
+        }
+    }
 }
 ```
 
@@ -613,60 +613,60 @@ final class SerializableTypeWrapper { // 见名知意
 那为什么打开这个选项，`generics`成员也被赋值完毕了呢？让我们定位到`ResolvableType#toString()`方法源码一探究竟。
 
 ```java org.springframework.core.ResolvableType
-	public String toString() {
-		if (isArray()) {
-			return getComponentType() + "[]";
-		}
-		if (this.resolved == null) {
-			return "?";
-		}
-		if (this.type instanceof TypeVariable) {
-			TypeVariable<?> variable = (TypeVariable<?>) this.type;
-			if (this.variableResolver == null || this.variableResolver.resolveVariable(variable) == null) {
-				// Don't bother with variable boundaries for toString()...
-				// Can cause infinite recursions in case of self-references
-				return "?";
-			}
-		}
+    public String toString() {
+        if (isArray()) {
+            return getComponentType() + "[]";
+        }
+        if (this.resolved == null) {
+            return "?";
+        }
+        if (this.type instanceof TypeVariable) {
+            TypeVariable<?> variable = (TypeVariable<?>) this.type;
+            if (this.variableResolver == null || this.variableResolver.resolveVariable(variable) == null) {
+                // Don't bother with variable boundaries for toString()...
+                // Can cause infinite recursions in case of self-references
+                return "?";
+            }
+        }
         // 可以看到这里其实会诱发解析类型中的泛型
-		if (hasGenerics()) {
-			return this.resolved.getName() + '<' + StringUtils.arrayToDelimitedString(getGenerics(), ", ") + '>';
-		}
-		return this.resolved.getName();
-	}
+        if (hasGenerics()) {
+            return this.resolved.getName() + '<' + StringUtils.arrayToDelimitedString(getGenerics(), ", ") + '>';
+        }
+        return this.resolved.getName();
+    }
 
     public boolean hasGenerics() {
-		return (getGenerics().length > 0);
-	}
+        return (getGenerics().length > 0);
+    }
 
     public ResolvableType[] getGenerics() {
-		if (this == NONE) {
-			return EMPTY_TYPES_ARRAY;
-		}
-		ResolvableType[] generics = this.generics;
-		if (generics == null) {
-			if (this.type instanceof Class) {
-				Type[] typeParams = ((Class<?>) this.type).getTypeParameters();
-				generics = new ResolvableType[typeParams.length];
-				for (int i = 0; i < generics.length; i++) {
-					generics[i] = ResolvableType.forType(typeParams[i], this);
-				}
-			}
+        if (this == NONE) {
+            return EMPTY_TYPES_ARRAY;
+        }
+        ResolvableType[] generics = this.generics;
+        if (generics == null) {
+            if (this.type instanceof Class) {
+                Type[] typeParams = ((Class<?>) this.type).getTypeParameters();
+                generics = new ResolvableType[typeParams.length];
+                for (int i = 0; i < generics.length; i++) {
+                    generics[i] = ResolvableType.forType(typeParams[i], this);
+                }
+            }
             // 而这里进入该case，再次诱发执行字段类型代理对象的已代理方法 getActualTypeArguments
-			else if (this.type instanceof ParameterizedType) {
-				Type[] actualTypeArguments = ((ParameterizedType) this.type).getActualTypeArguments();
-				generics = new ResolvableType[actualTypeArguments.length];
-				for (int i = 0; i < actualTypeArguments.length; i++) {
-					generics[i] = forType(actualTypeArguments[i], this.variableResolver);
-				}
-			}
-			else {
-				generics = resolveType().getGenerics();
-			}
-			this.generics = generics;
-		}
-		return generics;
-	}
+            else if (this.type instanceof ParameterizedType) {
+                Type[] actualTypeArguments = ((ParameterizedType) this.type).getActualTypeArguments();
+                generics = new ResolvableType[actualTypeArguments.length];
+                for (int i = 0; i < actualTypeArguments.length; i++) {
+                    generics[i] = forType(actualTypeArguments[i], this.variableResolver);
+                }
+            }
+            else {
+                generics = resolveType().getGenerics();
+            }
+            this.generics = generics;
+        }
+        return generics;
+    }
 ```
 
 下面用一张图总结示例`ResolvableType`的解析构造过程：
