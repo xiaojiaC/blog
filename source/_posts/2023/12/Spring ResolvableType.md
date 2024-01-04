@@ -1,6 +1,6 @@
 ---
 title: Spring ResolvableType
-date: 2023-11-12 20:22:23
+date: 2023-12-29 20:22:23
 categories:
   - [JAVA, Spring]
 tags:
