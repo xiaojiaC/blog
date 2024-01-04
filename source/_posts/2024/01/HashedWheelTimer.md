@@ -15,7 +15,7 @@ tags:
 
 例如：在[DUBBO](https://cn.dubbo.apache.org/zh-cn/overview/quickstart/)的源码，就曾出现在[失败重试](https://github.com/apache/dubbo/blob/3.2/dubbo-cluster/src/main/java/org/apache/dubbo/rpc/cluster/support/FailbackClusterInvoker.java)的场景中；[异步调用超时检测](https://github.com/apache/dubbo/blob/3.2/dubbo-remoting/dubbo-remoting-api/src/main/java/org/apache/dubbo/remoting/exchange/support/DefaultFuture.java)也常见到其身影。
 
-但本文介绍的[io.netty.util.HashedWheelTimer](https://github.com/netty/netty/blob/4.1/common/src/main/java/io/netty/util/HashedWheelTimer.java)是来自`netty-common`包的工具类。
+本文介绍的[io.netty.util.HashedWheelTimer](https://github.com/netty/netty/blob/4.1/common/src/main/java/io/netty/util/HashedWheelTimer.java)是来自`netty-common`包的工具类。
 
 <!-- more -->
 
@@ -70,6 +70,7 @@ public interface Timeout {
 
     // 取消此句柄关联的 TimerTask
     boolean cancel();
+}
 ```
 
 ### 如何使用
@@ -125,15 +126,15 @@ public class HashedWheelTimerTest {
 
 提交任务的线程，只要把任务往任务队列中存放即可返回。工作线程是单线程，一旦开启，不停地在时钟上绕圈圈，每滴答一下，先将队列中的任务取出，计算其剩余轮次，并转移到对应 tick 的桶中存储；接着取出该 tick 桶中存储的任务，如果轮次为 0 则立即执行，否则轮次-1 后重新插入定时器，等待触发执行。
 
-看下面的详细示例介绍：
+结合上图示例，看下面的详细介绍：
 
 工作线程到达每个时间整点的时候，开始工作。在`HashedWheelTimer`中，时间都是相对时间，工作线程的启动时间，定义为时间的 0 值。因为一次 tick 是 100ms(默认值)，所以 100ms、200ms、300ms... 就是这些整点。
 
-如上图，当时间到 200ms 的时候，发现任务队列有任务，取出所有的任务。按照任务指定的执行时间，将其分配到相应的 bucket 中。如上图中，小蓝和小橙指定的时间为 100ms~200ms 这个区间，就被分配到第二个 bucket 中，形成链表，其他任务同理。
+如上图，当时间到 200ms 的时候，发现任务队列有任务，取出所有的任务。按照任务指定的执行时间，将其分配到相应的 bucket 中。如上图中，{% label info@小蓝 %}和<span style="color: orange;">小橙</span>指定的时间为 100ms~200ms 这个区间，就被分配到第二个 bucket 中，形成链表，其他任务同理。
 
-当然这里还有轮次的概念，比如小橙指定的时间可能是 150ms + (8\*100ms) = 950ms，它也会落在这个 bucket 中，但是它是下一个轮次才能被执行的。
+当然这里还有轮次的概念，比如<span style="color: orange;">小橙</span>指定的时间可能是 150ms + (8\*100ms) = 950ms，它也会落在这个 bucket 中，但是它是下一个轮次才能被执行的。
 
-任务分配到 bucket 完成后，执行该次 tick 的真正的任务，也就是落在第二个 bucket 中的任务小蓝和小橙。
+任务分配到 bucket 完成后，执行该次 tick 的真正的任务，也就是落在第二个 bucket 中的任务{% label info@小蓝 %}和<span style="color: orange;">小橙</span>。
 
 假设执行这两个任务共消耗了 50ms，到达 250ms 的时间点，那么工作线程会休眠 50ms，等待进入到 300ms 这个整点。如果这两个任务执行的时间超过 100ms ，那么其他任务的执行时间有可能会被推迟，因此我们需要注意不要运行耗时任务，比如：IO 处理、休眠等待等。
 
@@ -232,7 +233,7 @@ public Timeout newTimeout(TimerTask task, long delay, TimeUnit unit) {
 
 提交任务的操作非常简单，实例化`Timeout`，然后放到任务队列中。
 
-我们可以看到，这里使用的优先级队列是一个 MPSC（Multiple Producer Single Consumer）的队列，刚好适用于这里的多生产线程，单消费线程的场景。而在 Dubbo 中，使用的队列是`LinkedBlockingQueue`，它是一个以链表方式组织的线程安全的队列。
+我们可以看到，这里使用的优先级队列是一个 MPSC（Multiple Producer Single Consumer）的队列，刚好适用于这里的多生产线程，单消费线程的场景。而在 Dubbo 中，使用的队列是`LinkedBlockingQueue`，它是一个以链表方式组织的线程安全队列。
 
 另外就是注意这里调用的`start()`方法，如果该任务是第一个提交的任务，它会负责工作线程的启动。
 
@@ -462,4 +463,4 @@ public boolean cancel() {
 }
 ```
 
-最后再提醒一句：`Worker`线程是一个 bucket 一个 bucket 顺次处理的，所以，即使有些任务执行时间超过了 100ms，“霸占”了之后好几个 bucket 的处理时间，也没关系，这些任务并不会被漏掉。但是有可能被延迟执行，毕竟工作线程是单线程。因此时间轮最适合**大量短暂定时任务**的调度处理。
+文末再提醒一句：`Worker`线程是一个 bucket 一个 bucket 顺次处理的，所以，即使有些任务执行时间超过了 100ms，“霸占”了之后好几个 bucket 的处理时间，也没关系，这些任务并不会被漏掉。但是有可能被延迟执行，毕竟工作线程是单线程。因此时间轮最适合**大量短暂定时任务**的调度处理。
