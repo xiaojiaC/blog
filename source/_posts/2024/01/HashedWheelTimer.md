@@ -130,11 +130,11 @@ public class HashedWheelTimerTest {
 
 工作线程到达每个时间整点的时候，开始工作。在`HashedWheelTimer`中，时间都是相对时间，工作线程的启动时间，定义为时间的 0 值。因为一次 tick 是 100ms(默认值)，所以 100ms、200ms、300ms... 就是这些整点。
 
-如上图，当时间到 200ms 的时候，发现任务队列有任务，取出所有的任务。按照任务指定的执行时间，将其分配到相应的 bucket 中。如上图中，{% label info@小蓝 %}和<span style="color: orange;">小橙</span>指定的时间为 100ms~200ms 这个区间，就被分配到第二个 bucket 中，形成链表，其他任务同理。
+如上图，当时间到 200ms 的时候，发现任务队列有任务，取出所有的任务。按照任务指定的执行时间，将其分配到相应的 bucket 中。如上图中，{% label info@小蓝 %}和<span style="background-color: #FFEFD5;">小橙</span>指定的时间为 100ms~200ms 这个区间，就被分配到第二个 bucket 中，形成链表，其他任务同理。
 
-当然这里还有轮次的概念，比如<span style="color: orange;">小橙</span>指定的时间可能是 150ms + (8\*100ms) = 950ms，它也会落在这个 bucket 中，但是它是下一个轮次才能被执行的。
+当然这里还有轮次的概念，比如<span style="background-color: #FFEFD5;">小橙</span>指定的时间可能是 150ms + (8\*100ms) = 950ms，它也会落在这个 bucket 中，但是它是下一个轮次才能被执行的。
 
-任务分配到 bucket 完成后，执行该次 tick 的真正的任务，也就是落在第二个 bucket 中的任务{% label info@小蓝 %}和<span style="color: orange;">小橙</span>。
+任务分配到 bucket 完成后，执行该次 tick 的真正的任务，也就是落在第二个 bucket 中的任务{% label info@小蓝 %}和<span style="background-color: #FFEFD5;">小橙</span>。
 
 假设执行这两个任务共消耗了 50ms，到达 250ms 的时间点，那么工作线程会休眠 50ms，等待进入到 300ms 这个整点。如果这两个任务执行的时间超过 100ms ，那么其他任务的执行时间有可能会被推迟，因此我们需要注意不要运行耗时任务，比如：IO 处理、休眠等待等。
 
