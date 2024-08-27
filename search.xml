@@ -54,18 +54,18 @@
 <p>那<code>WebappClassLoader</code>中到底是如何加载的呢？整体又分为 6 步：</p>
 <ol>
 <li>检查我们之前加载的本地类缓存（该类已加载过的类缓存在<code>resourceEntries</code> Map，此时还未加载过因此没有）；</li>
-<li>检查我们之前加载的类缓存（jvm 内已加载过的类缓存，也没有）；</li>
+<li>检查我们之前加载的类缓存（JVM 内已加载过的类缓存，也没有）；</li>
 </ol>
 <img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_2.jpg" class="">
 
 <ol start="3">
-<li>尝试使用<code>javaseLoader == Launcher$ExtClassLoader</code>类加载器加载类，以防止 Web 应用程序覆盖 JavaSE 类；</li>
+<li>尝试使用<code>javaseLoader == Launcher$ExtClassLoader</code>类加载器加载类，以防止 Web 应用程序覆盖 JavaSE 类（未加载到）；</li>
 </ol>
 <img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_3.jpg" class="">
 
 <ol start="4">
 <li>如果被要求委托或者是内部的一些类，委托给父类加载器加载（这里我们显然都不符合）；</li>
-<li>在我们的本地存储库中尝试找指定的类；</li>
+<li>在我们的本地存储库中尝试找指定的类（由于是动态类，也无法找到）；</li>
 <li>还无法加载，最后再无条件委托给父类加载器尝试一下（父类加载器是<code>URLClassLoader</code>，也没加载到）。</li>
 </ol>
 <p><code>org.apache.catalina.loader.WebappClassLoader</code>类的加载器层级如下图所示：</p>
@@ -169,7 +169,7 @@
 <tr>
 <td>异步日志等待策略：<code>log4j2.asyncLoggerConfigWaitStrategy</code>（同步&amp;异步混合使用）</td>
 <td><code>Timeout</code></td>
-<td><code>Block</code>：I/O 线程使用锁和条件变量等待可用的日志事件，建议在 CPU 资源重要程度大于系统吞吐和延迟的情况下使用该种策略； <code>Timeout</code>：是 Block 策略的一个变体，可以确保如果线程没有被及时唤醒（<code>awit()</code>）的话，线程也不会卡在那里，可以以一个较小的延迟（默认 10ms）恢复； <code>Sleep</code>：是一种自旋策略，使用纳秒级别的自旋交叉执行<code>Thread.yield()</code>和<code>LockSupport.parkNanos()</code>，该种策略可以较好的平衡系统性能和 CPU 资源的使用率，并且对程序线程影响较小； <code>Yield</code>：相较于<code>Sleep</code>省去了<code>LockSupport.parkNanos()</code>，而是不断执行<code>Thread.yield()</code>来让渡 CPU 使用权，但是会造成 CPU 一直处于较高负载，<strong>不建议</strong>在生产环境使用该种策略</td>
+<td><code>Block</code>：I/O 线程使用锁和条件变量等待可用的日志事件，建议在 CPU 资源重要程度大于系统吞吐和延迟的情况下使用该种策略；<br/><code>Timeout</code>：是 Block 策略的一个变体，可以确保如果线程没有被及时唤醒（<code>awit()</code>）的话，线程也不会卡在那里，可以以一个较小的延迟（默认 10ms）恢复；<br/><code>Sleep</code>：是一种自旋策略，使用纳秒级别的自旋交叉执行<code>Thread.yield()</code>和<code>LockSupport.parkNanos()</code>，该种策略可以较好的平衡系统性能和 CPU 资源的使用率，并且对程序线程影响较小；<br/><code>Yield</code>：相较于<code>Sleep</code>省去了<code>LockSupport.parkNanos()</code>，而是不断执行<code>Thread.yield()</code>来让渡 CPU 使用权，但是会造成 CPU 一直处于较高负载，<strong>不建议</strong>在生产环境使用该种策略</td>
 </tr>
 <tr>
 <td><code>RingBuffer</code>槽位数量：<code>log4j2.asyncLoggerRingBufferSize</code>（纯异步）</td>
