@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=SimHei, Verdana, sans-serif:300,300italic,400,400italic,700,700italic|KaiTi, "Microsoft YaHei", Georgia, sans:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/pace-js@1/themes/blue/pace-theme-minimal.css">
+  <script src="//cdn.jsdelivr.net/npm/pace-js@1/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xiaojiac.github.io","root":"/blog/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-2}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="背景日志打印想必对于我们并不陌生，大部分项目我都是配置的同步日志，未发现有性能问题，直到入坑的那天，压测发现权益推荐服务 QPS 才达到 100，TP999 就开始急剧飙升不可逆转。该服务依赖大约 30 多个不同业务的 RPC 权益上游，系统统一对 RPC 调用异常做了捕获处理，理论上不会对服务产生影响，但实际情况却是随着流量上涨，服务 TP999 变长，吞吐量出现急剧下降。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Log4j2同步打印日志导致业务线程阻塞">
+<meta property="og:url" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E.html">
+<meta property="og:site_name" content="Oh_null&#39;s blog">
+<meta property="og:description" content="背景日志打印想必对于我们并不陌生，大部分项目我都是配置的同步日志，未发现有性能问题，直到入坑的那天，压测发现权益推荐服务 QPS 才达到 100，TP999 就开始急剧飙升不可逆转。该服务依赖大约 30 多个不同业务的 RPC 权益上游，系统统一对 RPC 调用异常做了捕获处理，理论上不会对服务产生影响，但实际情况却是随着流量上涨，服务 TP999 变长，吞吐量出现急剧下降。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/jstack-info.png">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6.png">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_2.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_3.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_2.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_3.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/classLoader.jpg">
+<meta property="og:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/Log4jClasses.jpg">
+<meta property="article:published_time" content="2024-08-24T02:34:23.000Z">
+<meta property="article:modified_time" content="2024-08-27T00:15:13.584Z">
+<meta property="article:author" content="xiaojiaC">
+<meta property="article:tag" content="log4j2">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/jstack-info.png">
+
+<link rel="canonical" href="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>Log4j2同步打印日志导致业务线程阻塞 | Oh_null's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/blog/atom.xml" title="Oh_null's blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/blog/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Oh_null's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/blog/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/blog/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/blog/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar.gif">
+      <meta itemprop="name" content="xiaojiaC">
+      <meta itemprop="description" content="世上本无路，走的人多了，便成了路。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Oh_null's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Log4j2同步打印日志导致业务线程阻塞
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-08-24 10:34:23" itemprop="dateCreated datePublished" datetime="2024-08-24T10:34:23+08:00">2024-08-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/JAVA/" itemprop="url" rel="index"><span itemprop="name">JAVA</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/JAVA/Log4j2/" itemprop="url" rel="index"><span itemprop="name">Log4j2</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>20k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>日志打印想必对于我们并不陌生，大部分项目我都是配置的同步日志，未发现有性能问题，直到入坑的那天，压测发现权益推荐服务 QPS 才达到 100，TP999 就开始急剧飙升不可逆转。该服务依赖大约 30 多个不同业务的 RPC 权益上游，系统统一对 RPC 调用异常做了捕获处理，理论上不会对服务产生影响，但实际情况却是随着流量上涨，服务 TP999 变长，吞吐量出现急剧下降。</p>
+<a id="more"></a>
+
+<p>当前项目 log4j2 配置文件如下所示，版本是<strong>2.18.0</strong>：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span><br><span class="line"><span class="comment">&lt;!-- 日志级别以及优先级排序: OFF &gt; FATAL &gt; ERROR &gt; WARN &gt; INFO &gt; DEBUG &gt; TRACE &gt; ALL --&gt;</span></span><br><span class="line"><span class="comment">&lt;!-- status="WARN"：用于设置log4j2自身内部日志的信息输出级别，默认是OFF</span></span><br><span class="line"><span class="comment">     monitorInterval="30"：间隔秒数，自动检测配置文件的变更和重置配置</span></span><br><span class="line"><span class="comment"> --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Configuration</span> <span class="attr">status</span>=<span class="string">"WARN"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Properties</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 模式字符串：</span></span><br><span class="line"><span class="comment">           %d：日期</span></span><br><span class="line"><span class="comment">           %-5level：日志级别从左显示5个字符宽度</span></span><br><span class="line"><span class="comment">           %thread: 输出产生该日志事件的线程名</span></span><br><span class="line"><span class="comment">           %class：是输出的类</span></span><br><span class="line"><span class="comment">           %L: 输出代码中的行号</span></span><br><span class="line"><span class="comment">           %M：方法名</span></span><br><span class="line"><span class="comment">           %msg：日志消息</span></span><br><span class="line"><span class="comment">           %n：换行符</span></span><br><span class="line"><span class="comment">           %c: 输出日志信息所属的类目，通常就是所在类的全名</span></span><br><span class="line"><span class="comment">           %t: 输出产生该日志事件的线程名</span></span><br><span class="line"><span class="comment">           %l: 输出日志事件的发生位置，相当于%C.%M(%F:%L)的组合：包括类目名、发生的线程以及在代码中的行数</span></span><br><span class="line"><span class="comment">           %p: 输出日志信息优先级，即DEBUG，INFO，WARN，ERROR，FATAL</span></span><br><span class="line"><span class="comment">           --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_EXCEPTION_CONVERSION_WORD"</span>&gt;</span>%xwEx<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_LEVEL_PATTERN"</span>&gt;</span>%5p<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_DATEFORMAT_PATTERN"</span>&gt;</span>yyyy-MM-dd HH:mm:ss.SSS<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"CONSOLE_LOG_PATTERN"</span>&gt;</span>%clr&#123;%d&#123;$&#123;LOG_DATEFORMAT_PATTERN&#125;&#125;&#125;&#123;faint&#125; %clr&#123;$&#123;LOG_LEVEL_PATTERN&#125;&#125; %clr&#123;%pid&#125;&#123;magenta&#125; %clr&#123;---&#125;&#123;faint&#125; %clr&#123;[%15.15t]&#125;&#123;faint&#125; %clr&#123;%-40.40c&#123;1.&#125;&#125;&#123;cyan&#125; %clr&#123;:&#125;&#123;faint&#125; %m%n$&#123;sys:LOG_EXCEPTION_CONVERSION_WORD&#125;<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"FILE_LOG_PATTERN"</span>&gt;</span>%d&#123;$&#123;LOG_DATEFORMAT_PATTERN&#125;&#125; $&#123;LOG_LEVEL_PATTERN&#125; %X&#123;TRACE_ID&#125; %X&#123;FORCE_BOT&#125; %pid -- [%t] %X&#123;PIN&#125; %c&#123;1&#125; : %m%n$&#123;sys:LOG_EXCEPTION_CONVERSION_WORD&#125;<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Properties</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Appenders</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingRandomAccessFile</span> <span class="attr">name</span>=<span class="string">"ALL_FILE"</span> <span class="attr">immediateFlush</span>=<span class="string">"false"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">fileName</span>=<span class="string">"/export/logs/server.log"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">filePattern</span>=<span class="string">"/export/logs/server.log.%d&#123;yyyy-MM-dd&#125;-%i"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">PatternLayout</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"1024MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"5"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingRandomAccessFile</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingRandomAccessFile</span> <span class="attr">name</span>=<span class="string">"ERROR_FILE"</span> <span class="attr">immediateFlush</span>=<span class="string">"true"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">fileName</span>=<span class="string">"/export/logs/error.log"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">filePattern</span>=<span class="string">"/export/logs/error.log.%d&#123;yyyy-MM-dd&#125;-%i"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">PatternLayout</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">ThresholdFilter</span> <span class="attr">level</span>=<span class="string">"ERROR"</span> <span class="attr">onMatch</span>=<span class="string">"ACCEPT"</span> <span class="attr">onMismatch</span>=<span class="string">"DENY"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"1024MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"3"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingRandomAccessFile</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Console</span> <span class="attr">name</span>=<span class="string">"STDOUT"</span> <span class="attr">target</span>=<span class="string">"SYSTEM_OUT"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Console</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Appenders</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Loggers</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- additivity="false": additivity设置事件是否在root logger输出，为了避免重复输出，</span></span><br><span class="line"><span class="comment">        可以在Logger标签下设置additivity为false只在自定义的Appender中进行输出 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Logger</span> <span class="attr">name</span>=<span class="string">"com.xxx"</span> <span class="attr">level</span>=<span class="string">"INFO"</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">Root</span> <span class="attr">level</span>=<span class="string">"ERROR"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"ALL_FILE"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"ERROR_FILE"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Root</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h3><p>到底是什么导致性能急剧下降？先到压测机上保存下线程现场，打开 jstack 文件就被眼前的景象呆住了：</p>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/jstack-info.png" class="" title="java堆栈">
+
+<p>1200+业务线程均被阻塞在<code>org.apache.catalina.loader.WebappClassLoaderBase.loadClass</code>，为什么会导致阻塞呢？定位到该代码点：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Class&lt;?&gt; loadClass(String name, <span class="keyword">boolean</span> resolve) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (JreCompat.isGraalAvailable() ? <span class="keyword">this</span> : getClassLoadingLock(name)) &#123; <span class="comment">// 这里有并行类加载同步锁</span></span><br><span class="line">        <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">            log.debug(<span class="string">"loadClass("</span> + name + <span class="string">", "</span> + resolve + <span class="string">")"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        Class&lt;?&gt; clazz = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查应用程序是否已停止，停止则抛异常拒绝加载</span></span><br><span class="line">        checkStateForClassLoading(name);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (0) 检查我们之前加载的本地类缓存（该类的resourceEntries缓存Map）</span></span><br><span class="line">        clazz = findLoadedClass0(name);</span><br><span class="line">        <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                log.debug(<span class="string">"  Returning class from cache"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                resolveClass(clazz);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> clazz;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (0.1) 检查我们之前加载的类缓存</span></span><br><span class="line">        clazz = JreCompat.isGraalAvailable() ? <span class="keyword">null</span> : findLoadedClass(name);</span><br><span class="line">        <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                log.debug(<span class="string">"  Returning class from cache"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                resolveClass(clazz);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> clazz;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (0.2) 尝试使用引导类加载器加载类，以防止Web应用程序覆盖JavaSE类</span></span><br><span class="line">        String resourceName = binaryNameToPath(name, <span class="keyword">false</span>);</span><br><span class="line"></span><br><span class="line">        ClassLoader javaseLoader = getJavaseClassLoader(); <span class="comment">// 这里debug是ExtClassLoader</span></span><br><span class="line">        <span class="keyword">boolean</span> tryLoadingFromJavaseLoader;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// Use getResource as it won't trigger an expensive</span></span><br><span class="line">            <span class="comment">// ClassNotFoundException if the resource is not available from</span></span><br><span class="line">            <span class="comment">// the Java SE class loader. However (see</span></span><br><span class="line">            <span class="comment">// https://bz.apache.org/bugzilla/show_bug.cgi?id=58125 for</span></span><br><span class="line">            <span class="comment">// details) when running under a security manager in rare cases</span></span><br><span class="line">            <span class="comment">// this call may trigger a ClassCircularityError.</span></span><br><span class="line">            <span class="comment">// See https://bz.apache.org/bugzilla/show_bug.cgi?id=61424 for</span></span><br><span class="line">            <span class="comment">// details of how this may trigger a StackOverflowError</span></span><br><span class="line">            <span class="comment">// Given these reported errors, catch Throwable to ensure any</span></span><br><span class="line">            <span class="comment">// other edge cases are also caught</span></span><br><span class="line">            URL url;</span><br><span class="line">            <span class="keyword">if</span> (securityManager != <span class="keyword">null</span>) &#123;</span><br><span class="line">                PrivilegedAction&lt;URL&gt; dp = <span class="keyword">new</span> PrivilegedJavaseGetResource(resourceName);</span><br><span class="line">                url = AccessController.doPrivileged(dp);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                url = javaseLoader.getResource(resourceName);</span><br><span class="line">            &#125;</span><br><span class="line">            tryLoadingFromJavaseLoader = (url != <span class="keyword">null</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="comment">// Swallow all exceptions apart from those that must be re-thrown</span></span><br><span class="line">            ExceptionUtils.handleThrowable(t);</span><br><span class="line">            <span class="comment">// The getResource() trick won't work for this class. We have to</span></span><br><span class="line">            <span class="comment">// try loading it directly and accept that we might get a</span></span><br><span class="line">            <span class="comment">// ClassNotFoundException.</span></span><br><span class="line">            tryLoadingFromJavaseLoader = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (tryLoadingFromJavaseLoader) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                clazz = javaseLoader.loadClass(name);</span><br><span class="line">                <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                        resolveClass(clazz);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">return</span> clazz;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                <span class="comment">// Ignore</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (0.5) Permission to access this class when using a SecurityManager</span></span><br><span class="line">        <span class="keyword">if</span> (securityManager != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">int</span> i = name.lastIndexOf(<span class="string">'.'</span>);</span><br><span class="line">            <span class="keyword">if</span> (i &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    securityManager.checkPackageAccess(name.substring(<span class="number">0</span>,i));</span><br><span class="line">                &#125; <span class="keyword">catch</span> (SecurityException se) &#123;</span><br><span class="line">                    String error = sm.getString(<span class="string">"webappClassLoader.restrictedPackage"</span>, name);</span><br><span class="line">                    log.info(error, se);</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> ClassNotFoundException(error, se);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (1) 如果被要求或者是内部的一些类，委托给父加载器加载（这里我们显然都不符合）</span></span><br><span class="line">        <span class="keyword">boolean</span> delegateLoad = delegate || filter(name, <span class="keyword">true</span>); <span class="comment">// eg. 名字以javax、org.apache.catalina开头的类等</span></span><br><span class="line">        <span class="keyword">if</span> (delegateLoad) &#123;</span><br><span class="line">            <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                log.debug(<span class="string">"  Delegating to parent classloader1 "</span> + parent);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                clazz = Class.forName(name, <span class="keyword">false</span>, parent);</span><br><span class="line">                <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                        log.debug(<span class="string">"  Loading class from parent"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                        resolveClass(clazz);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">return</span> clazz;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                <span class="comment">// Ignore</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (2) 在我们的本地存储库中尝试找指定的类（其实是调SecurityManager.checkPackageDefinition来查找，不涉及忽略）</span></span><br><span class="line">        <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">            log.debug(<span class="string">"  Searching local repositories"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            clazz = findClass(name);</span><br><span class="line">            <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                    log.debug(<span class="string">"  Loading class from local repository"</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                    resolveClass(clazz);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> clazz;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">            <span class="comment">// Ignore</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (3) 还无法加载，最后再无条件委托给父加载器尝试一下（父类加载器是URLClassLoader，也是加载不到的）</span></span><br><span class="line">        <span class="keyword">if</span> (!delegateLoad) &#123;</span><br><span class="line">            <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                log.debug(<span class="string">"  Delegating to parent classloader at end: "</span> + parent);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                clazz = Class.forName(name, <span class="keyword">false</span>, parent);</span><br><span class="line">                <span class="keyword">if</span> (clazz != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (log.isDebugEnabled()) &#123;</span><br><span class="line">                        log.debug(<span class="string">"  Loading class from parent"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                        resolveClass(clazz);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">return</span> clazz;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                <span class="comment">// Ignore</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ClassNotFoundException(name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面代码可以看到，压测中线程阻塞在<code>org.apache.catalina.loader.WebappClassLoaderBase#loadClass(java.lang.String, boolean)</code>，这个方法的代码中包含<code>synchronized</code>同步代码块。其内会调用<code>java.lang.ClassLoader#getClassLoadingLock</code>获取 JDK 并行类加载锁。<code>org.apache.catalina.loader.WebappClassLoader</code>究竟在加载什么类呢？又为什么需要这么长的时间呢？本地通过 JDWP 连远程机器 DEBUG 看下：</p>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass.jpg" class="">
+
+<p>结合上述 Log4j2 日志配置和调用栈，得知打印我们日志使用的是<code>PatternLayout</code>，其内配置了<code>%xwEx</code>模式字符串，触发了<code>ExtendedThrowablePatternConverter</code>转换器解析异常栈信息，在转换中会获取每个调用栈的<code>Class</code>信息，从而诱发相关类的加载。</p>
+<blockquote>
+<p>注意：如果模式串不包含处理 Throwable 的标识符，那么会将<code>%xEx</code>添加到模式串的末尾进行解析。<code>%xEx</code>与<code>%throwable</code>相同，但还包括类的包信息。throwable 转换字后面可以跟一个<code>%xEx{short}</code>形式的选项，该选项将仅输出 Throwable 的第一行或<code>%xEx{n}</code>将打印堆栈跟踪的前 n 行。指定<code>%xEx{none}</code>或<code>%xEx{0}</code>将禁止打印异常。具体可以看<a href="https://logging.apache.org/log4j/2.x/manual/layouts.html#pattern-layout" target="_blank" rel="noopener">Log4j2 PatternLayout</a>查阅。</p>
+</blockquote>
+<p>调用栈的大部分的<code>Class</code>信息可以从<code>StackLocatorUtil.getCurrentStackTrace()</code>中直接获取，不需要类加载。但<code>GeneratedMethodAccessorXxx</code>无法直接获取，经过一个复杂的类加载后仍然没有加载到。</p>
+<h4 id="JVM-类加载机制"><a href="#JVM-类加载机制" class="headerlink" title="JVM 类加载机制"></a>JVM 类加载机制</h4><p>在分析类加载的过程前，我们先回顾下 JVM 类加载机制：</p>
+<ul>
+<li>JVM 类加载机制</li>
+</ul>
+<p>JVM 把描述类的数据从<code>.class</code>文件加载到内存，并对数据进行校验、链接和初始化后，最终形成可以被 JVM 直接使用的 Java 类型（<code>Java.lang.Class</code>对象），这就是 JVM 的类加载机制。JVM 的类加载是通过<code>ClassLoader</code>及其子类来完成的，类的层次关系和加载顺序可以由下图来描述：</p>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6.png" class="">
+
+<p>JVM 在加载类时默认采用的是双亲委派机制，即一个类收到加载类的请求时，它并不会自己先去加载，而是把加载任务委托给父类加载器依次递归，所有的加载请求最终都应该传送到顶层的引导类加载器中。如果父类加载器可以完成这个类加载请求，就成功返回；当父类加载器无法完成此加载请求时，子加载器才会尝试自己去加载。通过这种层级关系可以避免类的重复加载，同时保障核心类不被篡改。</p>
+<ul>
+<li>线程上下文类加载器</li>
+</ul>
+<p>Java 1.2 引入<code>ThreadContextClassLoader</code>即 TCCL，作为一个线程本地变量的和某个线程关联在一起的一个类加载器。这能够让任何包都可以在任意时候通过当前调用线程访问当前上下文加载器。这一上下文加载器能够访问负责本次调用的特定应用类加载器，然后能够对应用的类进行访问。</p>
+<h4 id="GeneratedMethodAccessorXxx类加载过程"><a href="#GeneratedMethodAccessorXxx类加载过程" class="headerlink" title="GeneratedMethodAccessorXxx类加载过程"></a><code>GeneratedMethodAccessorXxx</code>类加载过程</h4><p><code>GeneratedMethodAccessorXxx</code>类的加载过程，整体分为 3 次：</p>
+<ol>
+<li>第一次类加载，<code>lastLoader == WebappClassLoader</code>，使用自己加载，无法加载到类信息。</li>
+</ol>
+
+
+<ol start="2">
+<li>第二次类加载，<code>tccl == WebappClassLoader</code>，类同步骤 1 自然也是无法加载到了。</li>
+</ol>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_2.jpg" class="">
+
+<ol start="3">
+<li>第三次类加载，<code>ThrowableProxyHelper.class.getClassLoader()</code>类的加载器也是<code>WebappClassLoader</code>，同理无法加载。</li>
+</ol>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_3.jpg" class="">
+
+<p>那<code>WebappClassLoader</code>中到底是如何加载的呢？整体又分为 6 步：</p>
+<ol>
+<li>检查我们之前加载的本地类缓存（该类已加载过的类缓存<code>resourceEntries</code> Map，未加载过此时没有）；</li>
+<li>检查我们之前加载的类缓存（jvm 内已加载过的类缓存，也没有）；</li>
+</ol>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_2.jpg" class="">
+
+<ol start="3">
+<li>尝试使用<code>javaseLoader == Launcher$ExtClassLoader</code>类加载器加载类，以防止 Web 应用程序覆盖 JavaSE 类；</li>
+</ol>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/loadClass_1_3.jpg" class="">
+
+<ol start="4">
+<li>如果被要求委托或者是内部的一些类，委托给父类加载器加载（这里我们显然都不符合）；</li>
+<li>在我们的本地存储库中尝试找指定的类（其实是调<code>SecurityManager.checkPackageDefinition</code>来查找，不涉及忽略）；</li>
+<li>还无法加载，最后再无条件委托给父类加载器尝试一下（父类加载器是<code>URLClassLoader</code>，也没加载到）。</li>
+</ol>
+<p><code>org.apache.catalina.loader.WebappClassLoader</code>类的加载器层级如下图所示：</p>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/classLoader.jpg" class="">
+
+<p>那为什么<code>GeneratedMethodAccessorXxx</code>类无法加载到呢？</p>
+<p>由于应用依赖大量上游 RPC 调用，我们知道像<a href="https://cn.dubbo.apache.org/zh-cn/#/docs/user/quick-start.md?lang=zh-cn" target="_blank" rel="noopener">DUBBO</a>类似的微服务框架，内部其实是组装好消息对象（包含接口、方法名、别名、参数类型、参数值等）调用目标机，反射执行远程方法调用。我们的服务 Provider 接收到消息后，并行请求 30 多个上游获取权益，其中任何一个调用异常会打印异常栈，继而诱发<code>GeneratedMethodAccessorXxx</code>类加载。</p>
+<p>这个过程使用<code>Method.invoke</code>反射。在<code>sun.reflect</code>包中<code>Method.invoke</code>使用代理类，代理类有如下 2 种方式实现：</p>
+<ul>
+<li><code>NativeMethodAccessorImpl</code></li>
+<li><code>GeneratedMethodAccessorXxx</code></li>
+</ul>
+<p>这 2 个代理类都包含<code>invoke</code>方法，都能完成对反射类方法的调用。不同点是：</p>
+<ol>
+<li><code>NativeMethodAccessorImpl</code>通过 new 方法生成，invoke 方法底层调用 native 方法；</li>
+<li><code>GeneratedMethodAccessorXxx</code>通过 bytecode 动态生成。前 16 次调用使用<code>NativeMethodAccessorImpl</code>，从 17 次调用开始使用<code>GeneratedMethodAccessorXxx</code>，这种方式称为 Inflation 机制。</li>
+</ol>
+<p>为什么这设计呢？源码注释如下：</p>
+<blockquote>
+<p>“Inflation” mechanism. Loading bytecodes to implement Method.invoke() and Constructor.newInstance() currently costs 3-4x more than an invocation via native code for the first invocation (though subsequent invocations have been benchmarked to be over 20x faster). Unfortunately this cost increases startup time for certain applications that use reflection intensively (but only once per class) to bootstrap themselves. To avoid this penalty we reuse the existing JVM entry points for the first few invocations of Methods and Constructors and then switch to the bytecode-based implementations.</p>
+</blockquote>
+<p>含义大概是对于第一次<code>Method.invoke</code>调用，使用<code>GeneratedMethodAccessorXxx</code>会比<code>NativeMethodAccessorImpl</code>时间多 3-4 倍，这对于密集使用反射（每个类只有一次）作为引导启动的应用来说，增加了应用的启动时间。因此前几次会使用<code>NativeMethodAccessorImpl</code>，之后会切换到<code>GeneratedMethodAccessorXxx</code>。这个次数可以通过 JVM 参数<code>-Dsun.reflect.inflationThreshold</code>进行配置，默认是 15，设置为 0 即为直接绕过<code>NativeMethodAccessorImpl</code>调用，和设置<code>-Dsun.reflect.noInflation=true</code>参数的效果一样。</p>
+<p><code>GeneratedMethodAccessorXxx</code>动态生成的类具体是什么呢？大概长这样：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * ClassLoader:</span></span><br><span class="line"><span class="comment"> * +-sun.reflect.DelegatingClassLoader</span></span><br><span class="line"><span class="comment"> *   +-sun.misc.Launcher$AppClassLoader</span></span><br><span class="line"><span class="comment"> *     +-sun.misc.Launcher$ExtClassLoader</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">package</span> sun.reflect;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.InvocationTargetException;</span><br><span class="line"><span class="keyword">import</span> sun.reflect.MethodAccessorImpl;</span><br><span class="line"><span class="keyword">import</span> com.xxx.TargetClass;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GeneratedMethodAccessorXxx</span> <span class="keyword">extends</span> <span class="title">MethodAccessorImpl</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">GeneratedMethodAccessorXxx</span><span class="params">()</span> </span>&#123; <span class="keyword">super</span>(); &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Object object, Object[] args)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> IllegalArgumentException, InvocationTargetException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (object == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            TargetClass target = (TargetClass) object;</span><br><span class="line">            <span class="keyword">if</span> (args != <span class="keyword">null</span> &amp;&amp; args.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 这里假设我们是对 TargetClass.targetMethod() 空参方法的访问</span></span><br><span class="line">            <span class="keyword">return</span> target.targetMethod();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable throwable) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> InvocationTargetException(throwable);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassCastException | NullPointerException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(e.toString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其实内部就是直接调用目标对象的目标方法，和正常的方法调用没什么区别。</p>
+<h4 id="GeneratedMethodAccessorXxx的类加载器"><a href="#GeneratedMethodAccessorXxx的类加载器" class="headerlink" title="GeneratedMethodAccessorXxx的类加载器"></a><code>GeneratedMethodAccessorXxx</code>的类加载器</h4><p>那加载<code>GeneratedMethodAccessorXxx</code>的类加载器是什么呢，在生成好了字节码之后会调用下面的方法做类定义：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sun.reflect;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.security.AccessController;</span><br><span class="line"><span class="keyword">import</span> java.security.PrivilegedAction;</span><br><span class="line"><span class="keyword">import</span> java.security.ProtectionDomain;</span><br><span class="line"><span class="keyword">import</span> sun.misc.Unsafe;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassDefiner</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> Unsafe unsafe = Unsafe.getUnsafe();</span><br><span class="line"></span><br><span class="line">    ClassDefiner() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> Class&lt;?&gt; defineClass(String var0, <span class="keyword">byte</span>[] var1, <span class="keyword">int</span> var2, <span class="keyword">int</span> var3, <span class="keyword">final</span> ClassLoader var4) &#123;</span><br><span class="line">        ClassLoader var5 = (ClassLoader)AccessController.doPrivileged(<span class="keyword">new</span> PrivilegedAction&lt;ClassLoader&gt;() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ClassLoader <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">new</span> DelegatingClassLoader(var4);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">return</span> unsafe.defineClass(var0, var1, var2, var3, var5, (ProtectionDomain)<span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以<code>GeneratedMethodAccessorXxx</code>的类加载器其实是一个<code>DelegatingClassLoader</code>类加载器。</p>
+<p>在 Java 中，类的加载是由类加载器负责的。当需要动态生成类时，为了性能考虑，会创建一个新的类加载器，即<code>DelegatingClassLoader</code>，来加载这些动态生成的类。这样做的原因是为了能够在需要时创建这些类，而在内存紧张时能够释放这些类的内存。如果使用原有的类加载器，可能会导致新创建的类无法被卸载，因为类的卸载只有在类加载器可以被回收的情况下才会发生。因此通过使用<code>DelegatingClassLoader</code>，可以更好地管理内存，避免内存泄漏。</p>
+<p>结合以上类加载过程以及<code>GeneratedMethodAccessorXxx</code>类的生成方式，可知无法加载到的原因如下：</p>
+<ol>
+<li><code>GeneratedMethodAccessorXxx</code>是动态生成的类，<code>.class</code>文件无法在磁盘中查找到，所以通过其他的类加载器无法进行类加载。</li>
+<li><code>GeneratedMethodAccessorXxx</code>的类加载器是<code>DelegatingClassLoader</code>，而 Log4j2 并没有使用此加载器来获取，所以也不会加载到。</li>
+</ol>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>通过以上分析，总结如下：</p>
+<ol>
+<li>日志 Layout 默认使用<code>%xEx</code>打印异常栈的类信息，而异常栈中包含动态类<code>GeneratedMethodAccessorXxx</code>的加载，需要进行类加载；</li>
+<li>Log4j2 最终调用<code>WebappClassLoader.loadclass</code>进行类加载，由于是动态类和类加载器使用的原因，导致无法加载。每次日志打印都会进行类加载过程，而在<code>loadClass</code>的方法中有<code>synchronized</code>发生同步等待，线程阻塞后，并发能力下降。</li>
+</ol>
+<h3 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h3><p>问题原因比较清楚了，那么我们怎么来优化呢？</p>
+<ol>
+<li>在<code>Layout</code>中增加标识符<code>%xEx{n}</code>，<strong>n</strong>表示打印多少行栈信息，一般只需要把业务调用栈信息打印出来即可，框架栈信息不需要。或者使用<code>%xEx{0}</code>来禁用打印异常栈，但显然生产环境不适用。</li>
+<li>改用异步日志打印。因为日志打印发生在异步线程中，业务线程无感知，因此能够比较好的解决这个问题。</li>
+</ol>
+<h4 id="Log4J2-日志分类"><a href="#Log4J2-日志分类" class="headerlink" title="Log4J2 日志分类"></a>Log4J2 日志分类</h4><p>先来回顾下 Log4j2 中的主要组件：</p>
+<img src="/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E/Log4jClasses.jpg" class="">
+
+<p>Log4j2 中记录日志的方式有同步日志和异步日志两种方式，其中异步日志又可分为使用<code>AsyncAppender</code>和使用<code>AsyncLogger</code>两种方式。使用 Log4j2 有三种日志模式：全异步日志、混合模式、同步日志，<a href="https://logging.apache.org/log4j/2.x/performance.html" target="_blank" rel="noopener">性能</a>从高到底，线程越多效率越高，也可以避免日志卡死线程情况发生。</p>
+<ul>
+<li>同步日志：同步打印日志，日志输出与业务逻辑在同一线程，当日志输出完毕，才能继续后续业务逻辑处理</li>
+<li><code>AsyncAppender</code>：异步打印日志，内部采用<code>ArrayBlockingQueue</code>，对每个<code>AsyncAppender</code>创建一个线程用于处理日志输出</li>
+<li><code>AsyncLogger</code>：异步打印日志，内部采用高性能并发框架<code>Disruptor</code>，创建一个线程用于处理日志输出</li>
+</ul>
+<h5 id="DisruptorvsArrayBlockingQueue"><a href="#DisruptorvsArrayBlockingQueue" class="headerlink" title="DisruptorvsArrayBlockingQueue"></a><code>Disruptor</code>vs<code>ArrayBlockingQueue</code></h5><ul>
+<li>多线程访问队列时，<code>ArrayBlockingQueue</code>采用的<code>ReentrantLock</code>重量级锁，而<code>Disruptor</code>采用<code>CAS</code>的方式。</li>
+<li><code>Disruptor</code>队列中的关键属性之间会被填充冗余字段，比如队列头和队列尾，从而使得不同的属性位于不同的 cpu 缓存行上，当生产者和消费者分别并发的对其进行修改时，可以避免缓存失效。</li>
+<li><code>Disruptor</code>使用环形队列<code>RingBuffer</code>，和<code>ArrayBlockingQueue</code>不同，<code>RingBuffer</code>不需要频繁地分配和释放，可以避免分配带来的消耗，避免垃圾回收，同时可以更好地利用 CPU 的缓存机制更加友好。</li>
+</ul>
+<blockquote>
+<p><a href="https://www.jianshu.com/p/bad7b4b44e48" target="_blank" rel="noopener">Disruptor 详解</a></p>
+</blockquote>
+<h4 id="AsyncAppender"><a href="#AsyncAppender" class="headerlink" title="AsyncAppender"></a><code>AsyncAppender</code></h4><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Configuration</span> <span class="attr">status</span>=<span class="string">"warn"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Appenders</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingRandomAccessFile</span> <span class="attr">name</span>=<span class="string">"ALL_FILE"</span> <span class="attr">immediateFlush</span>=<span class="string">"false"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">fileName</span>=<span class="string">"/export/logs/server.log"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">filePattern</span>=<span class="string">"/export/logs/server.log.%d&#123;yyyy-MM-dd&#125;-%i"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">PatternLayout</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"1024MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"5"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingRandomAccessFile</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 异步AsyncAppender进行配置直接引用上面的RollingRandomAccessFile的name --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Async</span> <span class="attr">name</span>=<span class="string">"Async"</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"ALL_FILE"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Async</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 异步AsyncAppender配置完毕，需要几个配置几个 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Appenders</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">Loggers</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Root</span> <span class="attr">level</span>=<span class="string">"error"</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!-- 此处如果引用异步AsyncAppender的name就是异步输出日志 --&gt;</span></span><br><span class="line">            <span class="comment">&lt;!-- 此处如果引用Appenders标签中RollingRandomAccessFile的name就是同步输出日志 --&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"Async"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Root</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="AsyncLogger"><a href="#AsyncLogger" class="headerlink" title="AsyncLogger"></a><code>AsyncLogger</code></h4><p><code>AsyncLogger</code>才是 log4j2 的重头戏，也是官方推荐的异步方式。Log4j2 中的<code>AsyncLogger</code>的内部使用了<a href="https://lmax-exchange.github.io/disruptor/" target="_blank" rel="noopener">Disruptor</a>框架。</p>
+<p>异步日志可以有两种选择：全局异步和混合异步。开启异步首先需要引入<code>Disruptor</code>依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.lmax<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>disruptor<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.4.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>全局异步</li>
+</ul>
+<p>全局异步就是：所有的日志都异步的记录，在原 Log4j2 配置文件上不用做任何改动，只需要在 JVM 启动的时候增加一个参数，这是最简单的配置，并提供最佳性能。</p>
+<p>也可以在<code>src/java/resources</code>目录添加<code>log4j2.system.properties</code>配置文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">log4j2.contextSelector&#x3D;org.apache.logging.log4j.core.async.AsyncLoggerContextSelector</span><br><span class="line">log4j2.asyncQueueFullPolicy&#x3D;Discard</span><br><span class="line">log4j2.discardThreshold&#x3D;ERROR</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>混合异步</li>
+</ul>
+<p>混合异步就是：可以在应用中同时使用同步日志和异步日志，这使得日志的配置方式更加灵活。虽然 Log4j2 提供以一套异常处理机制，可以覆盖大部分的状态，但是还是会有一小部分的特殊情况是无法完全处理的，比如我们如果是记录审计日志，那么官方就推荐使用同步日志的方式，而对于记录业务日志的地方，使用异步日志将大幅提升性能，减少对应用本身的影响。混合异步的方式需要通过修改 Log4j2 配置文件来实现，通过将<code>&lt;Root&gt;</code>或<code>&lt;Logger&gt;</code>元素替换为<code>&lt;AsyncRoot&gt;</code>或<code>&lt;AsyncLogger&gt;</code>。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Configuration</span> <span class="attr">status</span>=<span class="string">"WARN"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Properties</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_EXCEPTION_CONVERSION_WORD"</span>&gt;</span>%xwEx<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_LEVEL_PATTERN"</span>&gt;</span>%5p<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"LOG_DATEFORMAT_PATTERN"</span>&gt;</span>yyyy-MM-dd HH:mm:ss.SSS<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"CONSOLE_LOG_PATTERN"</span>&gt;</span>%clr&#123;%d&#123;$&#123;LOG_DATEFORMAT_PATTERN&#125;&#125;&#125;&#123;faint&#125; %clr&#123;$&#123;LOG_LEVEL_PATTERN&#125;&#125; %clr&#123;%pid&#125;&#123;magenta&#125; %clr&#123;---&#125;&#123;faint&#125; %clr&#123;[%15.15t]&#125;&#123;faint&#125; %clr&#123;%-40.40c&#123;1.&#125;&#125;&#123;cyan&#125; %clr&#123;:&#125;&#123;faint&#125; %m%n$&#123;sys:LOG_EXCEPTION_CONVERSION_WORD&#125;<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"FILE_LOG_PATTERN"</span>&gt;</span>%d&#123;$&#123;LOG_DATEFORMAT_PATTERN&#125;&#125; $&#123;LOG_LEVEL_PATTERN&#125; %X&#123;TRACE_ID&#125; %X&#123;FORCE_BOT&#125; %pid -- [%t] %X&#123;PIN&#125; %c&#123;1&#125; : %m%n$&#123;sys:LOG_EXCEPTION_CONVERSION_WORD&#125;<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Properties</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Appenders</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingRandomAccessFile</span> <span class="attr">name</span>=<span class="string">"ALL_FILE"</span> <span class="attr">immediateFlush</span>=<span class="string">"false"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">fileName</span>=<span class="string">"/export/logs/server.log"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">filePattern</span>=<span class="string">"/export/logs/server.log.%d&#123;yyyy-MM-dd&#125;-%i"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">PatternLayout</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"1024MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"5"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingRandomAccessFile</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingRandomAccessFile</span> <span class="attr">name</span>=<span class="string">"ERROR_FILE"</span> <span class="attr">immediateFlush</span>=<span class="string">"true"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">fileName</span>=<span class="string">"/export/logs/error.log"</span></span></span><br><span class="line"><span class="tag">                                 <span class="attr">filePattern</span>=<span class="string">"/export/logs/error.log.%d&#123;yyyy-MM-dd&#125;-%i"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">PatternLayout</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">ThresholdFilter</span> <span class="attr">level</span>=<span class="string">"ERROR"</span> <span class="attr">onMatch</span>=<span class="string">"ACCEPT"</span> <span class="attr">onMismatch</span>=<span class="string">"DENY"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"1024MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"3"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingRandomAccessFile</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Console</span> <span class="attr">name</span>=<span class="string">"STDOUT"</span> <span class="attr">target</span>=<span class="string">"SYSTEM_OUT"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"$&#123;sys:FILE_LOG_PATTERN&#125;"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Console</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Appenders</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Loggers</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 定义一个同步Logger并使用Root下Appender引用 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Logger</span> <span class="attr">name</span>=<span class="string">"com.xxx"</span> <span class="attr">level</span>=<span class="string">"INFO"</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Root</span> <span class="attr">level</span>=<span class="string">"ERROR"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"ALL_FILE"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"ERROR_FILE"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Root</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 定义一个异步Logger并为其配置普通Appender引用 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">AsyncLogger</span> <span class="attr">name</span>=<span class="string">"AsyncLogger"</span> <span class="attr">level</span>=<span class="string">"INFO"</span> <span class="attr">includeLocation</span>=<span class="string">"false"</span> <span class="attr">additivity</span>=<span class="string">"false"</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"ALL_FILE"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">AsyncLogger</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="location-信息对性能的影响"><a href="#location-信息对性能的影响" class="headerlink" title="location 信息对性能的影响"></a>location 信息对性能的影响</h4><p>在<code>LayoutPattern</code>中，<code>%C</code>或<code>%class</code>, <code>%F</code>或<code>%file</code>，<code>%l</code>或<code>%location</code>，<code>%L</code>或<code>%line</code>，<code>%M</code>或<code>%method</code>都会采用<code>new Throwable().getStackTrace()</code>的方式获取了当前日志操作所在的堆栈快照，日志操作方法（比如<code>log.info()</code>）的下一个栈帧就是当前 log 所处的方法，这是一种非常耗时的操作。</p>
+<p>替换方法：</p>
+<p>在<code>LayoutPattern</code>中使用<code>%c</code>或<code>%logger</code>，这种方式可以记录<strong>logger</strong>的 name，在日常开发中，<strong>logger</strong>的 name 一般都是当前 logger 所在类的 class 全限定名。比如<code>Logger log = LoggerFactory.getLogger(Demo.class);</code>，lombok 的<code>@Slf4j</code>, <code>@Log4j</code>, <code>@Log4j2</code>注解也同样遵循这种方式。</p>
+<h4 id="一些配置建议"><a href="#一些配置建议" class="headerlink" title="一些配置建议"></a>一些配置建议</h4><ul>
+<li>建议在<code>Configuration</code>标签中添加<code>monitorInterval</code>属性，以支持配置动态刷新。</li>
+<li>建议使用<code>RollingRandomAccessFile</code>做为 Appender。</li>
+<li>对于日志输出频繁且大量的应用，应配置基于大小和时间的双重文件滚动策略。</li>
+<li><code>ERROR</code>等报错日志额外记录一份日志文件, 同时允许<code>INFO</code>日志文件中存在<code>ERROR</code>日志或植入链路追踪 ID，以便于排查问题。</li>
+<li>建议日志滚动、压缩等耗费性能的操作，配置在非整点进行，避开可能即将开始的业务活动。</li>
+<li>建议使用异步模式。</li>
+<li>建议在子<code>Logger</code>或子<code>AsyncLogger</code>中设置<code>additivity=&quot;false&quot;</code>，避免日志重复打印。</li>
+<li>建议设置<code>includeLocation=&quot;false&quot;</code>，同时<code>PatternLayout</code>不要使用<code>%L</code>、<code>%C</code>、<code>%M</code>等含有位置信息的模式串，可以使用<code>%c</code>或<code>%logger</code>代替。</li>
+<li>当日志产生速度大于 Appender 记录速度时，队列会被填满，应用线程将会阻塞。可以设置<code>log4j2.AsyncQueueFullPolicy=Discard</code>配合<code>log4j2.discardThreshold=ERROR</code>，在队列满时丢弃小于等于指定阈值日志（默认为<code>INFO</code>级别，即将<code>INFO</code>，<code>DEBUG</code>，<code>TRACE</code>日志事件丢弃掉）。</li>
+<li>建议使用<code>RandomAccessFileAppender</code>, 并且设置<code>immediateFlush=&quot;false&quot;</code>，但注意设置后<code>tail -f</code>将不能实时观察最新日志。</li>
+</ul>
+<blockquote>
+<p><a href="https://logging.apache.org/log4j/2.x/manual/architecture.html" target="_blank" rel="noopener">Log4j2 Architecture</a> &gt; <a href="https://logging.apache.org/log4j/2.x/manual/async.html" target="_blank" rel="noopener">Log4j2 Async</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">
+        <span>------------------本文结束</span>
+        <i class="fa fa-paw"></i>
+        <span>感谢阅读------------------</span>
+        </div>
+    
+</div>
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>xiaojiaC
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://xiaojiac.github.io/blog/Log4j2%E5%90%8C%E6%AD%A5%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E5%AF%BC%E8%87%B4%E4%B8%9A%E5%8A%A1%E7%BA%BF%E7%A8%8B%E9%98%BB%E5%A1%9E.html" title="Log4j2同步打印日志导致业务线程阻塞">http://xiaojiac.github.io/blog/Log4j2同步打印日志导致业务线程阻塞.html</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/log4j2/" rel="tag"><i class="fa fa-tag"></i> log4j2</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/HashedWheelTimer.html" rel="prev" title="Netty HashedWheelTimer">
+      <i class="fa fa-chevron-left"></i> Netty HashedWheelTimer
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#问题分析"><span class="nav-number">1.1.</span> <span class="nav-text">问题分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#JVM-类加载机制"><span class="nav-number">1.1.1.</span> <span class="nav-text">JVM 类加载机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#GeneratedMethodAccessorXxx类加载过程"><span class="nav-number">1.1.2.</span> <span class="nav-text">GeneratedMethodAccessorXxx类加载过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#GeneratedMethodAccessorXxx的类加载器"><span class="nav-number">1.1.3.</span> <span class="nav-text">GeneratedMethodAccessorXxx的类加载器</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#小结"><span class="nav-number">1.2.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#优化"><span class="nav-number">1.3.</span> <span class="nav-text">优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Log4J2-日志分类"><span class="nav-number">1.3.1.</span> <span class="nav-text">Log4J2 日志分类</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#DisruptorvsArrayBlockingQueue"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">DisruptorvsArrayBlockingQueue</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#AsyncAppender"><span class="nav-number">1.3.2.</span> <span class="nav-text">AsyncAppender</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#AsyncLogger"><span class="nav-number">1.3.3.</span> <span class="nav-text">AsyncLogger</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#location-信息对性能的影响"><span class="nav-number">1.3.4.</span> <span class="nav-text">location 信息对性能的影响</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#一些配置建议"><span class="nav-number">1.3.5.</span> <span class="nav-text">一些配置建议</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="xiaojiaC"
+      src="/blog/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">xiaojiaC</p>
+  <div class="site-description" itemprop="description">世上本无路，走的人多了，便成了路。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives/">
+        
+          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/blog/categories/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/xiaojiaC" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;xiaojiaC" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/xiaojia1100" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;xiaojia1100" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:xiaojia1100@163.com" title="E-Mail → mailto:xiaojia1100@163.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://xiaojiac.github.io/hello-world" title="Manual → https:&#x2F;&#x2F;xiaojiac.github.io&#x2F;hello-world"><i class="fa fa-fw fa-bookmark"></i>Manual</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/blog/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaojiaC</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,205,0' opacity='0.5' zIndex='-1' count='88' src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-nest@1/canvas-nest.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+  
+
+  <script async src="/blog/js/cursor/fireworks.js"></script>
+
+
+
+
+  <script src="/blog/js/activate-power-mode.min.js"></script>
+  <script>
+    POWERMODE.colorful = true;
+    POWERMODE.shake = false;
+    document.body.addEventListener('input', POWERMODE);
+  </script>
+
+
+
+
+</body>
+</html>
